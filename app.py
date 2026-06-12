@@ -261,6 +261,7 @@ def main():
         gr.HTML(FOOTER_HTML)
 
     demo.launch(
+        server_name=config.SERVER_NAME,
         share=config.SHARE,
         debug=config.DEBUG,
         inline=False,

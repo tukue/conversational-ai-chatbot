@@ -72,8 +72,8 @@ The chatbot uses Gradio's `ChatInterface` with a polished customer support layou
 - **Clickable example prompts** — users can start with one-click queries
 - **Chat history** preserved across 5 turns for context-aware replies
 - **Custom CSS** for professional look (blue accent, clean typography)
-- **Public share URL** — `share=True` creates a temporary public URL via Gradio tunnel, accessible from any device anywhere
-- **LAN access** — binds to `0.0.0.0`, reachable from any device on your network at `http://<your-ip>:7860`
+- **Public share URL** (`share=True` in `config.py`) — creates a temporary public URL via Gradio tunnel, accessible from any device anywhere without deployment
+- **LAN access** — binds to `0.0.0.0`, reachable from any device on your network at `http://<base_url>:7860`
 - **Mobile responsive** — works on desktop and phone browsers
 
 ### Example prompts shown in UI
@@ -90,17 +90,16 @@ Talk to a human agent
 
 ## Quick Start
 
+Set `SHARE = True` in `config.py` to publicly share your chatbot URL via Gradio's tunnel:
+
 ```bash
 pip install -r requirements.txt
 python app.py
 ```
 
-The Gradio UI will launch at `http://localhost:7860`.
-A **public share URL** (e.g. `https://xxxx.gradio.live`) will also be printed
-— accessible from any device anywhere without additional setup.
-
-The app binds to `0.0.0.0`, so it's also accessible from any device
-on your local network at `http://YOUR_LOCAL_IP:7860`.
+The app will be accessible at:
+- **Local/LAN**: `http://<base_url>:7860` (replace `<base_url>` with your machine's IP or `localhost`)
+- **Public URL** (e.g. `https://xxxx.gradio.live`) — printed in the terminal, accessible from any device anywhere with no additional setup
 
 ## Run Tests
 
@@ -139,7 +138,7 @@ docker run -p 7860:7860 support-chatbot
 
 - The first load downloads DialoGPT-medium (~1.8 GB), which can take 2-5 minutes
 - Use **CPU upgrade** or **GPU (T4 small)** for faster inference
-- Set `SHARE = False` in `config.py` on HF Spaces (no tunnel needed)
+- Set `SHARE = False` in `config.py` on HF Spaces (public URL tunnel not needed on HF)
 - Environment variables can be set in Space Settings → Repository Secrets
 
 ## Other Deployment Options

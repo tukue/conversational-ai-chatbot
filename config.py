@@ -17,4 +17,5 @@ APP_TITLE = "Customer Support Chatbot"
 APP_DESCRIPTION = "AI-powered customer support chatbot using Microsoft's DialoGPT-medium"
 APP_THEME = "soft"
 SHARE = True
+SERVER_NAME = "0.0.0.0"
 DEBUG = True
