@@ -1,0 +1,107 @@
+[
+  {
+    "id": "return_policy",
+    "category": "returns",
+    "keywords": ["return", "refund", "send back", "return policy", "money back"],
+    "question": "What is your return policy?",
+    "answer": "You can return any item within 30 days of delivery for a full refund. Items must be unused and in original packaging. To start a return, go to your Orders page and click 'Return Item'."
+  },
+  {
+    "id": "return_process",
+    "category": "returns",
+    "keywords": ["how to return", "return process", "return label", "drop off"],
+    "question": "How do I return an item?",
+    "answer": "Log into your account, go to Orders, select the item you want to return, and click 'Start Return'. You'll receive a prepaid return label via email. Drop the package at any authorized carrier location. Refunds are processed within 5-7 business days after we receive the item."
+  },
+  {
+    "id": "shipping_time",
+    "category": "shipping",
+    "keywords": ["shipping time", "delivery time", "how long", "when will it arrive", "shipping speed"],
+    "question": "How long does shipping take?",
+    "answer": "Standard shipping takes 5-7 business days. Express shipping takes 2-3 business days. Next-day delivery is available for orders placed before 2 PM local time. International shipping typically takes 10-14 business days."
+  },
+  {
+    "id": "shipping_cost",
+    "category": "shipping",
+    "keywords": ["shipping cost", "shipping fee", "free shipping", "delivery cost"],
+    "question": "How much does shipping cost?",
+    "answer": "Standard shipping is free on orders over $50. Orders under $50 have a flat $5.99 shipping fee. Express shipping is $12.99, and next-day delivery is $19.99. International shipping costs vary by destination."
+  },
+  {
+    "id": "track_order",
+    "category": "orders",
+    "keywords": ["track order", "where is my order", "order status", "tracking number", "package location"],
+    "question": "How do I track my order?",
+    "answer": "Once your order ships, you'll receive a tracking number via email. You can also track your order anytime in your account under 'My Orders'. Click the tracking number to see real-time updates from the carrier."
+  },
+  {
+    "id": "cancel_order",
+    "category": "orders",
+    "keywords": ["cancel order", "cancel", "stop order", "change order"],
+    "question": "Can I cancel my order?",
+    "answer": "You can cancel an order within 1 hour of placing it, as long as it hasn't shipped yet. Go to Orders, find the item, and click 'Cancel'. If the cancellation window has passed, you can start a return once the item arrives."
+  },
+  {
+    "id": "payment_methods",
+    "category": "payments",
+    "keywords": ["payment", "pay", "credit card", "paypal", "payment method", "how to pay"],
+    "question": "What payment methods do you accept?",
+    "answer": "We accept Visa, Mastercard, American Express, Discover, PayPal, Apple Pay, Google Pay, and Shop Pay. All payments are processed securely through encrypted connections."
+  },
+  {
+    "id": "payment_issue",
+    "category": "payments",
+    "keywords": ["payment declined", "card not working", "payment error", "charge failed", "transaction declined"],
+    "question": "My payment was declined. What should I do?",
+    "answer": "First, check that your card details are correct and you have sufficient funds. Try a different payment method. If the issue persists, contact your bank as they may have blocked the transaction. For further help, reach out to our support team with your order details."
+  },
+  {
+    "id": "change_address",
+    "category": "orders",
+    "keywords": ["change address", "shipping address", "update address", "wrong address"],
+    "question": "Can I change my shipping address?",
+    "answer": "You can update your shipping address within 1 hour of placing the order, before it enters processing. Go to Orders, select the order, and click 'Edit Address'. Once shipped, we unfortunately cannot redirect packages."
+  },
+  {
+    "id": "lost_package",
+    "category": "shipping",
+    "keywords": ["lost package", "missing package", "package not delivered", "where is my package", "stolen"],
+    "question": "My package says delivered but I didn't receive it.",
+    "answer": "Check with neighbors or building management. Sometimes carriers mark delivery early. If you still can't find it within 24 hours, contact us and we'll open an investigation with the carrier. We'll ensure you get a replacement or refund."
+  },
+  {
+    "id": "damaged_item",
+    "category": "returns",
+    "keywords": ["damaged", "broken", "defective", "not working", "arrived damaged", "defect"],
+    "question": "I received a damaged item. What do I do?",
+    "answer": "We're sorry about that! Take photos of the damage and contact us immediately. We'll arrange a free pickup of the damaged item and send a replacement or issue a full refund within 24 hours."
+  },
+  {
+    "id": "size_exchange",
+    "category": "returns",
+    "keywords": ["exchange", "different size", "size issue", "wrong size", "swap"],
+    "question": "Can I exchange an item for a different size?",
+    "answer": "Yes! Start a return for the original item and place a new order for the desired size. Exchanges are processed as a return + new order so you get the correct size as quickly as possible."
+  },
+  {
+    "id": "gift_card",
+    "category": "payments",
+    "keywords": ["gift card", "gift voucher", "store credit", "gift balance"],
+    "question": "How do I use a gift card?",
+    "answer": "Enter the gift card code at checkout in the 'Gift Card or Discount Code' field. The amount will be applied to your order total. You can check your gift card balance in your account under 'Gift Cards'."
+  },
+  {
+    "id": "discount_codes",
+    "category": "payments",
+    "keywords": ["coupon", "promo code", "discount code", "voucher", "sale"],
+    "question": "How do I apply a discount code?",
+    "answer": "Enter your promo code at checkout in the 'Discount Code' box and click Apply. Only one code can be used per order. Codes cannot be combined or applied to past orders."
+  },
+  {
+    "id": "contact_support",
+    "category": "general",
+    "keywords": ["talk to human", "real person", "agent", "support", "customer service", "help"],
+    "question": "How do I contact a real person?",
+    "answer": "You can reach our support team via live chat (available 24/7), email at support@example.com (response within 4 hours), or phone at 1-800-555-0199 (Mon-Fri 8 AM - 8 PM EST). Please have your order number ready."
+  }
+]

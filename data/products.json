@@ -1,0 +1,74 @@
+[
+  {
+    "id": "PROD-001",
+    "name": "Wireless Bluetooth Headphones",
+    "category": "Electronics",
+    "price": 79.99,
+    "description": "Noise-cancelling wireless headphones with 30-hour battery life, comfortable over-ear design, and built-in microphone.",
+    "in_stock": true,
+    "variants": ["Black", "White", "Navy"]
+  },
+  {
+    "id": "PROD-002",
+    "name": "Organic Cotton T-Shirt",
+    "category": "Clothing",
+    "price": 29.99,
+    "description": "Soft, 100% organic cotton t-shirt. Pre-shrunk, machine washable. Available in multiple colors.",
+    "in_stock": true,
+    "variants": ["S", "M", "L", "XL"]
+  },
+  {
+    "id": "PROD-003",
+    "name": "Stainless Steel Water Bottle",
+    "category": "Home & Kitchen",
+    "price": 24.99,
+    "description": "Double-wall insulated, 32oz capacity. Keeps drinks cold for 24 hours or hot for 12 hours. BPA-free.",
+    "in_stock": true,
+    "variants": ["Silver", "Matte Black", "Forest Green"]
+  },
+  {
+    "id": "PROD-004",
+    "name": "Leather Laptop Sleeve",
+    "category": "Accessories",
+    "price": 49.99,
+    "description": "Genuine leather laptop sleeve fits 13-14 inch laptops. Padded interior with magnetic closure.",
+    "in_stock": false,
+    "variants": ["Brown", "Black"]
+  },
+  {
+    "id": "PROD-005",
+    "name": "Yoga Mat Premium",
+    "category": "Sports",
+    "price": 39.99,
+    "description": "Extra thick 6mm non-slip yoga mat. Eco-friendly TPE material with carrying strap included.",
+    "in_stock": true,
+    "variants": ["Purple", "Blue", "Teal"]
+  },
+  {
+    "id": "PROD-006",
+    "name": "USB-C Charging Hub",
+    "category": "Electronics",
+    "price": 59.99,
+    "description": "7-in-1 USB-C hub with HDMI 4K, 3 USB 3.0 ports, SD/microSD reader, and 100W power delivery.",
+    "in_stock": true,
+    "variants": ["Space Gray", "Silver"]
+  },
+  {
+    "id": "PROD-007",
+    "name": "Scented Soy Candle Set",
+    "category": "Home & Kitchen",
+    "price": 34.99,
+    "description": "Set of 3 hand-poured soy candles. Scents: Vanilla Bean, Lavender, Eucalyptus. 40-hour burn time each.",
+    "in_stock": false,
+    "variants": []
+  },
+  {
+    "id": "PROD-008",
+    "name": "Running Shoes - Ultra Comfort",
+    "category": "Sports",
+    "price": 119.99,
+    "description": "Lightweight running shoes with responsive cushioning, breathable mesh upper, and durable rubber outsole.",
+    "in_stock": true,
+    "variants": ["7", "8", "9", "10", "11", "12"]
+  }
+]
