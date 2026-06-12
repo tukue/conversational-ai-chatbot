@@ -72,6 +72,8 @@ The chatbot uses Gradio's `ChatInterface` with a polished customer support layou
 - **Clickable example prompts** — users can start with one-click queries
 - **Chat history** preserved across 5 turns for context-aware replies
 - **Custom CSS** for professional look (blue accent, clean typography)
+- **Public share URL** — `share=True` creates a temporary public URL via Gradio tunnel, accessible from any device anywhere
+- **LAN access** — binds to `0.0.0.0`, reachable from any device on your network at `http://<your-ip>:7860`
 - **Mobile responsive** — works on desktop and phone browsers
 
 ### Example prompts shown in UI
@@ -94,6 +96,11 @@ python app.py
 ```
 
 The Gradio UI will launch at `http://localhost:7860`.
+A **public share URL** (e.g. `https://xxxx.gradio.live`) will also be printed
+— accessible from any device anywhere without additional setup.
+
+The app binds to `0.0.0.0`, so it's also accessible from any device
+on your local network at `http://YOUR_LOCAL_IP:7860`.
 
 ## Run Tests
 
