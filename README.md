@@ -9,7 +9,7 @@ An intelligent customer support chatbot for e-commerce businesses, powered by Mi
 | **Cost Reduction** | Automates 60-70% of Tier-1 support queries (order status, returns, shipping FAQs), reducing reliance on human agents |
 | **Response Time** | Instant responses vs. 4-24 hour email wait times — improves CSAT by eliminating customer wait |
 | **Agent Productivity** | Human agents focus on complex/escalated issues only, increasing throughput by 3x |
-| **24/7 Availability** | Handles inquiries outside business hours without overtime costs |
+| **Availability** | Handles inquiries outside business hours without overtime costs |
 | **Consistency** | Every customer gets the same accurate policy answer — no agent misinterpretation |
 | **Scalability** | Handles 1000+ concurrent conversations with zero marginal cost per interaction |
 | **Deflection Rate** | FAQ + product catalog search deflects tickets that would otherwise reach human support |
