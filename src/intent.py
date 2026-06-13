@@ -3,22 +3,22 @@ import re
 INTENTS = {
     "greeting": ["hello", "hi", "hey", "good morning", "good evening", "howdy"],
     "closing": ["bye", "goodbye", "see you", "thanks", "thank you", "thank"],
-    "order_status": ["where is my order", "track", "order status", "shipping status", "has my order shipped", "order update", "tracking"],
-    "cancel_order": ["cancel order", "cancel my order", "stop order"],
-    "return_request": ["return", "refund", "send back", "return item", "money back", "return policy"],
-    "shipping_info": ["shipping time", "shipping cost", "delivery", "free shipping", "how long", "ship"],
-    "payment_issue": ["payment declined", "card not working", "payment error", "charge", "billing", "transaction", "declined"],
+    "order_status": ["where is my order", "track", "tracks", "tracked", "tracking", "order status", "shipping status", "has my order shipped", "order update"],
+    "cancel_order": ["cancel order", "cancel my order", "cancelled order", "cancelling order", "stop order"],
+    "return_request": ["return", "returns", "returned", "refund", "refunds", "refunded", "send back", "return item", "money back", "return policy"],
+    "shipping_info": ["shipping time", "shipping cost", "delivery", "free shipping", "how long", "ship", "ships", "shipped", "shipping"],
+    "payment_issue": ["payment declined", "card not working", "payment error", "charge", "charges", "charged", "billing", "transaction", "declined"],
     "payment_method": ["payment methods", "how to pay", "credit card", "paypal", "what payment"],
-    "product_inquiry": ["product", "item", "buy", "price", "cost", "available", "in stock", "tell me about", "looking for", "do you sell"],
+    "product_inquiry": ["product", "products", "item", "items", "buy", "price", "prices", "cost", "costs", "available", "in stock", "tell me about", "looking for", "do you sell"],
     "damaged_item": ["damaged", "broken", "defective", "arrived damaged", "not working"],
-    "exchange": ["exchange", "different size", "wrong size", "swap", "size"],
+    "exchange": ["exchange", "exchanges", "different size", "wrong size", "swap", "size", "sizes"],
     "lost_package": ["lost package", "missing package", "not delivered", "stolen", "package is lost", "package lost"],
     "change_address": ["change address", "wrong address", "shipping address", "my address"],
-    "discount": ["discount", "promo code", "coupon", "voucher", "sale", "sales"],
-    "gift_card": ["gift card", "gift voucher", "store credit"],
+    "discount": ["discount", "discounts", "promo code", "promo codes", "coupon", "coupons", "voucher", "vouchers", "sale", "sales"],
+    "gift_card": ["gift card", "gift cards", "gift voucher", "gift vouchers", "store credit"],
     "complaint": ["unhappy", "frustrated", "terrible", "awful", "bad service", "angry", "disappointed", "worst", "horrible"],
-    "contact_human": ["human", "real person", "agent", "manager", "speak to", "talk to a", "representative"],
-    "escalate": ["escalate", "supervisor", "manager"],
+    "contact_human": ["human", "real person", "agent", "agents", "manager", "managers", "speak to", "talk to a", "representative"],
+    "escalate": ["escalate", "escalated", "escalation", "supervisor", "manager"],
 }
 
 
@@ -26,7 +26,7 @@ def _word_boundary_match(keyword, text):
     if not keyword.strip():
         return False
     escaped = re.escape(keyword)
-    return bool(re.search(rf"\b{escaped}", text, re.IGNORECASE))
+    return bool(re.search(rf"\b{escaped}\b", text, re.IGNORECASE))
 
 
 def classify_intent(message):
