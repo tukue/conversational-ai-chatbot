@@ -72,3 +72,16 @@ def test_contact_human_variations():
 def test_escalate_over_complaint():
     result = classify_intent("I want to escalate this terrible situation")
     assert result == "escalate"
+
+
+def test_cancel_in_cancellation_no_false_positive():
+    assert classify_intent("What is your cancellation policy?") == "general"
+
+
+def test_ship_in_membership_no_false_positive():
+    assert classify_intent("I love my membership rewards") == "general"
+
+
+def test_thanks_triggers_closing():
+    assert classify_intent("thanks for your help") == "closing"
+    assert classify_intent("thank you very much") == "closing"
