@@ -1,13 +1,10 @@
 import os
 
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 
 # Model settings
 MODEL_NAME = os.getenv("MODEL_NAME", "microsoft/DialoGPT-medium")
-DEVICE = "cuda" if torch is not None and torch.cuda.is_available() else "cpu"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Generation parameters
 MAX_NEW_TOKENS = 100

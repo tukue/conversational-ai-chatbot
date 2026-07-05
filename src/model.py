@@ -1,8 +1,5 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 import config
 
 
@@ -10,7 +7,7 @@ def load_model():
     print(f"Loading model: {config.MODEL_NAME}")
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME)
     model_kwargs = {"low_cpu_mem_usage": True}
-    if torch is not None and config.DEVICE == "cuda":
+    if config.DEVICE == "cuda":
         model_kwargs["torch_dtype"] = torch.float16
 
     model = AutoModelForCausalLM.from_pretrained(config.MODEL_NAME, **model_kwargs)
@@ -30,8 +27,7 @@ def generate_response(tokenizer, model, input_text):
         max_length=config.MAX_INPUT_LENGTH
     ).to(config.DEVICE)
 
-    no_grad = torch.no_grad() if torch is not None else _NullContext()
-    with no_grad:
+    with torch.no_grad():
         output_ids = model.generate(
             input_ids,
             max_new_tokens=config.MAX_NEW_TOKENS,
@@ -48,11 +44,3 @@ def generate_response(tokenizer, model, input_text):
     )
 
     return response
-
-
-class _NullContext:
-    def __enter__(self):
-        return None
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
