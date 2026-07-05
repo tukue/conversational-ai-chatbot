@@ -139,6 +139,11 @@ On macOS/Linux, use:
 
 ```bash
 GRADIO_SHARE=true python app.py
+What's your return policy?
+Where is my order?
+How long does shipping take?
+Do you sell wireless headphones?
+
 ```
 
 ## Configuration
