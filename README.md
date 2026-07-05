@@ -27,7 +27,12 @@ This project is designed as an AI portfolio project: it shows practical product 
 
 ## Live Demo
 
-Deploy this repository to Hugging Face Spaces with the Gradio SDK. After deployment, Hugging Face will install `requirements.txt` and run `app.py` automatically.
+There are two ways to make the chatbot public:
+
+- **Permanent portfolio demo:** deploy this repository to Hugging Face Spaces with the Gradio SDK.
+- **Temporary public demo:** run the app locally with Gradio `share=True`, which creates a temporary `https://*.gradio.live` URL.
+
+For recruiters and portfolio links, Hugging Face Spaces is the recommended option because the URL stays available after your local computer shuts down.
 
 ## What The Chatbot Can Do
 
@@ -106,6 +111,36 @@ Open the local URL printed by Gradio, usually:
 http://127.0.0.1:7860
 ```
 
+## Temporary Public URL With Gradio Share
+
+If you want to quickly share the chatbot from your local machine, enable Gradio sharing:
+
+```powershell
+$env:GRADIO_SHARE="true"
+python app.py
+```
+
+Gradio will print a temporary public URL that looks like this:
+
+```text
+https://your-random-name.gradio.live
+```
+
+Use this option for quick testing, demos, or sending the app to someone before deploying to Hugging Face Spaces.
+
+Important notes:
+
+- The public Gradio share URL is temporary.
+- The URL stops working when your local app stops running.
+- Do not use Gradio share for a permanent portfolio link.
+- For a permanent public deployment, use Hugging Face Spaces.
+
+On macOS/Linux, use:
+
+```bash
+GRADIO_SHARE=true python app.py
+```
+
 ## Configuration
 
 The app works without secrets. These optional environment variables are supported:
@@ -119,6 +154,8 @@ DEBUG=false
 ```
 
 For Hugging Face Spaces, keep `GRADIO_SHARE=false`. Spaces already gives the app a public URL, so a Gradio share tunnel is not needed.
+
+For a temporary local public URL, set `GRADIO_SHARE=true` before running `python app.py`.
 
 ## Run Tests
 
@@ -166,6 +203,7 @@ git push space HEAD:main
 - Most customer support responses are handled without the Transformer model, so normal FAQ and product queries are fast.
 - `cpu-upgrade` is recommended for a smoother demo. The app can run on CPU, but DialoGPT-medium may be slow on basic hardware.
 - For a faster or lighter Space, set `MODEL_NAME=microsoft/DialoGPT-small` in the Space environment variables.
+- Use `GRADIO_SHARE=true` only for local temporary public links. Keep it disabled on Hugging Face Spaces.
 
 ## Portfolio Talking Points
 
@@ -190,6 +228,7 @@ git push space HEAD:main
 - `.gitignore` excludes virtual environments, caches, and model weights.
 - No `.env`, API keys, private customer data, or downloaded model files are committed.
 - The app starts locally with `python app.py`.
+- Optional local public sharing works with `GRADIO_SHARE=true python app.py`.
 - The Space is created with the Gradio SDK.
 - The Space build logs show successful dependency installation.
 - The Space UI loads and responds to example prompts.
