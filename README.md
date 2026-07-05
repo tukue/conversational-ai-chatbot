@@ -1,148 +1,195 @@
-# Conversational AI Customer Support Chatbot
+---
+title: Customer Support AI Chatbot
+emoji: 💬
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 4.44.1
+app_file: app.py
+python_version: 3.10
+suggested_hardware: cpu-upgrade
+models:
+  - microsoft/DialoGPT-medium
+tags:
+  - chatbot
+  - gradio
+  - transformers
+  - customer-support
+  - portfolio
+short_description: E-commerce support chatbot with intent routing, FAQs, product search, guardrails, and a Transformer fallback.
+---
 
-An intelligent customer support chatbot for e-commerce businesses, powered by Microsoft's DialoGPT-medium with intent routing, knowledge base retrieval, and guardrails.
+# Customer Support AI Chatbot
 
-## Business Impact
+An e-commerce customer support chatbot built with Gradio and Hugging Face Transformers. It combines rule-based intent routing, FAQ retrieval, product search, safety guardrails, and a DialoGPT fallback model for general conversation.
 
-| Metric | Impact |
-|---|---|
-| **Cost Reduction** | Automates 60-70% of Tier-1 support queries (order status, returns, shipping FAQs), reducing reliance on human agents |
-| **Response Time** | Instant responses vs. 4-24 hour email wait times — improves CSAT by eliminating customer wait |
-| **Agent Productivity** | Human agents focus on complex/escalated issues only, increasing throughput by 3x |
-| **Availability** | Handles inquiries outside business hours without overtime costs |
-| **Consistency** | Every customer gets the same accurate policy answer — no agent misinterpretation |
-| **Scalability** | Handles 1000+ concurrent conversations with zero marginal cost per interaction |
-| **Deflection Rate** | FAQ + product catalog search deflects tickets that would otherwise reach human support |
+This project is designed as an AI portfolio project: it shows practical product thinking, deployment readiness, and clean separation between UI, routing, safety, knowledge base, and model code.
+
+## Live Demo
+
+Deploy this repository to Hugging Face Spaces with the Gradio SDK. After deployment, Hugging Face will install `requirements.txt` and run `app.py` automatically.
+
+## What The Chatbot Can Do
+
+- Answer common support questions about returns, shipping, payments, damaged items, lost packages, exchanges, discounts, and gift cards.
+- Search a small product catalog from `data/products.json`.
+- Ask for an order number when needed and reuse recent chat history when the user already provided one.
+- Block sensitive personal information such as SSNs, card numbers, and phone numbers.
+- Redirect off-topic or unsafe prompts back to customer support.
+- Use `microsoft/DialoGPT-medium` only as a fallback when a question is not handled by the structured support logic.
 
 ## Architecture
 
-```
-User Input
-    │
-    ▼
-┌─────────────┐    ┌──────────────┐
-│  Guardrails  │───▶│  Input Check │─── Toxic/PII → Blocked
-└─────────────┘    └──────────────┘
-    │
-    ▼
-┌─────────────┐
-│ Intent      │─── greeting, order_status, return_request, shipping_info,
-│ Classifier  │    product_inquiry, payment_issue, complaint, escalate, etc.
-└─────────────┘    (17 intents)
-    │
-    ▼
-┌──────────────────────────────────────────────┐
-│              Response Router                  │
-│                                              │
-│  Intent          →  Source                   │
-│  ───────────         ──────                   │
-│  greeting/closing   →  Template              │
-│  order_status       →  Template + ask for #  │
-│  return/shipping    →  FAQ knowledge base    │
-│  product_inquiry    →  Product catalog       │
-│  complaint/escalate →  Template + human      │
-│  general/unknown    →  DialoGPT (fallback)   │
-└──────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────┐
-│  Guardrails  │─── Output check → Filter unsafe responses
-└─────────────┘
-    │
-    ▼
-   User
+```text
+User message
+    |
+    v
+Input guardrails
+    |
+    v
+Intent classifier
+    |
+    +--> Template response
+    +--> FAQ search
+    +--> Product search
+    +--> DialoGPT fallback
+    |
+    v
+Output guardrails
+    |
+    v
+Gradio chat response
 ```
 
-## Features
+## Repository Structure
 
-- **17 Intent Classifiers** — Routes queries to the right handler (order tracking, returns, shipping, payments, complaints, etc.)
-- **FAQ Knowledge Base** — 15 policy answers with keyword + word-overlap matching
-- **Product Catalog Search** — Lookup products by name, description, or category
-- **Response Templates** — Professional, brand-consistent replies for every intent
-- **Guardrails** — Blocks profanity, PII (SSN, credit cards, phone numbers), off-topic queries, and business policy violations
-- **DialoGPT Fallback** — General conversation handled by Microsoft's DialoGPT-medium when no intent matches
-- **Conversation History** — Maintains context across 5 most recent turns
-- **Docker Support** — One-command containerized deployment
-
-## Gradio UI
-
-The chatbot uses Gradio's `ChatInterface` with a polished customer support layout:
-
-- **Branded header** with title and tagline
-- **Clickable example prompts** — users can start with one-click queries
-- **Chat history** preserved across 5 turns for context-aware replies
-- **Custom CSS** for professional look (blue accent, clean typography)
-- **Public share URL** (`share=True` in `config.py`) — creates a temporary public URL via Gradio tunnel, accessible from any device anywhere without deployment
-- **LAN access** — binds to `0.0.0.0`, reachable from any device on your network at `http://<base_url>:7860`
-- **Mobile responsive** — works on desktop and phone browsers
-
-### Example prompts shown in UI
-
-```
-What's your return policy?
-Where is my order?
-How long does shipping take?
-Do you sell wireless headphones?
-I want to cancel my order
-My package is lost
-Talk to a human agent
+```text
+.
+├── app.py                  # Gradio UI and Hugging Face Space entrypoint
+├── config.py               # Model, generation, and app settings
+├── requirements.txt        # Runtime dependencies for Hugging Face Spaces
+├── README.md               # Project docs and Hugging Face Space metadata
+├── .gitignore              # Excludes caches, environments, and model files
+├── data/
+│   ├── faq.json            # FAQ knowledge base
+│   └── products.json       # Demo product catalog
+├── src/
+│   ├── chatbot.py          # Main routing and chat logic
+│   ├── guardrails.py       # Input and output safety checks
+│   ├── intent.py           # Keyword-based intent classifier
+│   ├── knowledge_base.py   # FAQ and product search helpers
+│   ├── model.py            # Transformers model loading and generation
+│   └── templates.py        # Support response templates
+└── tests/                  # Unit and integration tests
 ```
 
-## Quick Start
+## Local Setup
 
-Set `SHARE = True` in `config.py` to publicly share your chatbot URL via Gradio's tunnel:
+Use Python 3.10 or newer.
 
 ```bash
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
 ```
 
-The app will be accessible at:
-- **Local/LAN**: `http://<base_url>:7860` (replace `<base_url>` with your machine's IP or `localhost`)
-- **Public URL** (e.g. `https://xxxx.gradio.live`) — printed in the terminal, accessible from any device anywhere with no additional setup
+On macOS/Linux, activate the environment with:
+
+```bash
+source .venv/bin/activate
+```
+
+Open the local URL printed by Gradio, usually:
+
+```text
+http://127.0.0.1:7860
+```
+
+## Configuration
+
+The app works without secrets. These optional environment variables are supported:
+
+```bash
+MODEL_NAME=microsoft/DialoGPT-medium
+PORT=7860
+GRADIO_SERVER_NAME=0.0.0.0
+GRADIO_SHARE=false
+DEBUG=false
+```
+
+For Hugging Face Spaces, keep `GRADIO_SHARE=false`. Spaces already gives the app a public URL, so a Gradio share tunnel is not needed.
 
 ## Run Tests
 
 ```bash
-python -m pytest tests/ -v
+python -m pytest tests -v
 ```
 
-## Docker
+`pytest` is not included in the deployment requirements because Hugging Face Spaces only needs runtime packages. Install it locally if you want to run the tests:
 
 ```bash
-docker build -t support-chatbot .
-docker run -p 7860:7860 support-chatbot
+pip install pytest
 ```
 
 ## Hugging Face Spaces Deployment
 
-### Option A — Gradio SDK (no Docker, easier)
+1. Push this repository to GitHub.
+2. Go to https://huggingface.co/spaces.
+3. Click **Create new Space**.
+4. Choose **Gradio** as the SDK.
+5. Name the Space, for example `customer-support-ai-chatbot`.
+6. Choose public visibility for a portfolio demo.
+7. After the Space is created, copy its Git URL.
+8. Add the Space as a remote:
 
-1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → **Create new Space**
-2. Choose **Gradio** as the SDK
-3. In the Space settings, set **Hardware** to at least **CPU 2 vCPU · 16 GB** (DialoGPT needs memory)
-4. Push the code:
-   ```bash
-   git remote add space https://huggingface.co/spaces/YOUR_USER/SPACE_NAME
-   git push space main
-   ```
-5. Hugging Face auto-installs `requirements.txt` and runs `app.py`
+```bash
+git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+```
 
-### Option B — Docker (more control)
+9. Push to the Space:
 
-1. Create a Space → choose **Docker** as the Space SDK
-2. Push the code including the `Dockerfile`
-3. Hugging Face builds and runs the container automatically
+```bash
+git push space main
+```
 
-### Notes for Hugging Face
+If your local branch has a different name, use:
 
-- The first load downloads DialoGPT-medium (~1.8 GB), which can take 2-5 minutes
-- Use **CPU upgrade** or **GPU (T4 small)** for faster inference
-- Set `SHARE = False` in `config.py` on HF Spaces (public URL tunnel not needed on HF)
-- Environment variables can be set in Space Settings → Repository Secrets
+```bash
+git push space HEAD:main
+```
 
-## Other Deployment Options
+## Deployment Notes
 
-- **Local**: `python app.py`
-- **Docker**: Containerized for any cloud provider (AWS ECS, GCP Cloud Run, Azure)
-- **REST API**: Extend `app.py` with FastAPI for custom frontend integration
+- Do not commit downloaded model files. The model is loaded from the Hugging Face Hub at runtime and cached by the Space.
+- The first fallback response can be slower because the model may need to download and load.
+- Most customer support responses are handled without the Transformer model, so normal FAQ and product queries are fast.
+- `cpu-upgrade` is recommended for a smoother demo. The app can run on CPU, but DialoGPT-medium may be slow on basic hardware.
+- For a faster or lighter Space, set `MODEL_NAME=microsoft/DialoGPT-small` in the Space environment variables.
+
+## Portfolio Talking Points
+
+- Hybrid chatbot design: deterministic support workflows first, generative model fallback second.
+- Clear safety controls for PII, toxic language, and unsupported topics.
+- Deployable Gradio interface with Hugging Face Space metadata.
+- Modular Python code that separates UI, business logic, retrieval, guardrails, and model inference.
+- Test coverage for routing, guardrails, knowledge base behavior, templates, and model helper functions.
+
+## Limitations
+
+- The order lookup is simulated. A production app would connect to a secure order management API.
+- The FAQ and product search are keyword based. A production app could use embeddings and semantic search.
+- DialoGPT is a lightweight conversational fallback, not a modern instruction-tuned support model.
+- The guardrails are simple regex and keyword checks. Production systems should add stronger moderation and logging.
+
+## Final Checklist Before Deployment
+
+- `app.py` exists at the repository root.
+- `requirements.txt` contains only runtime dependencies.
+- `README.md` has Hugging Face Space YAML metadata.
+- `.gitignore` excludes virtual environments, caches, and model weights.
+- No `.env`, API keys, private customer data, or downloaded model files are committed.
+- The app starts locally with `python app.py`.
+- The Space is created with the Gradio SDK.
+- The Space build logs show successful dependency installation.
+- The Space UI loads and responds to example prompts.

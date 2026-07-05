@@ -1,8 +1,13 @@
-import torch
+import os
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 # Model settings
-MODEL_NAME = "microsoft/DialoGPT-medium"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+MODEL_NAME = os.getenv("MODEL_NAME", "microsoft/DialoGPT-medium")
+DEVICE = "cuda" if torch is not None and torch.cuda.is_available() else "cpu"
 
 # Generation parameters
 MAX_NEW_TOKENS = 100
@@ -16,6 +21,7 @@ MAX_INPUT_LENGTH = 1024
 APP_TITLE = "Customer Support Chatbot"
 APP_DESCRIPTION = "AI-powered customer support chatbot using Microsoft's DialoGPT-medium"
 APP_THEME = "soft"
-SHARE = True
-SERVER_NAME = "0.0.0.0"
-DEBUG = True
+SHARE = os.getenv("GRADIO_SHARE", "false").lower() == "true"
+SERVER_NAME = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
+SERVER_PORT = int(os.getenv("PORT", "7860"))
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"

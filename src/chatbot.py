@@ -11,15 +11,33 @@ faq = FAQSearch()
 products = ProductSearch()
 
 
+def _history_pairs(history):
+    if not history:
+        return []
+
+    if isinstance(history, list) and history and isinstance(history[0], dict):
+        pairs = []
+        pending_user = None
+        for item in history:
+            role = item.get("role")
+            content = item.get("content", "")
+            if role == "user":
+                pending_user = content
+            elif role == "assistant" and pending_user is not None:
+                pairs.append((pending_user, content))
+                pending_user = None
+        return pairs
+
+    return history
+
+
 def _extract_order_number(message):
     match = re.search(r'\b(\d{5,})\b', message)
     return match.group(1) if match else None
 
 
 def _find_order_in_history(history):
-    if not history:
-        return None
-    for user_msg, _ in reversed(history):
+    for user_msg, _ in reversed(_history_pairs(history)):
         num = _extract_order_number(user_msg)
         if num:
             return num
@@ -48,20 +66,29 @@ def ensure_model_loaded():
 
 def build_conversation(message, history):
     conversation = ""
-    if history:
-        for user_msg, bot_msg in history[-config.MAX_HISTORY_TURNS:]:
-            conversation += user_msg + tokenizer.eos_token
-            conversation += bot_msg + tokenizer.eos_token
+    for user_msg, bot_msg in _history_pairs(history)[-config.MAX_HISTORY_TURNS:]:
+        conversation += user_msg + tokenizer.eos_token
+        conversation += bot_msg + tokenizer.eos_token
     conversation += message + tokenizer.eos_token
     return conversation
 
 
 def respond_with_dialogpt(message, history):
-    ensure_model_loaded()
-    conversation = build_conversation(message, history)
+    try:
+        ensure_model_loaded()
+        conversation = build_conversation(message, history)
 
-    from src.model import generate_response
-    return generate_response(tokenizer, model, conversation)
+        from src.model import generate_response
+        response = generate_response(tokenizer, model, conversation)
+        if response.strip():
+            return response
+    except Exception as exc:
+        print(f"Fallback model unavailable: {exc}")
+
+    return (
+        "I can help with orders, returns, shipping, products, payments, and account questions. "
+        "Could you share a few more details about what you need?"
+    )
 
 
 def chat(message, history):
