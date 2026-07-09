@@ -13,6 +13,7 @@ TOP_P = 0.95
 TEMPERATURE = 0.7
 MAX_HISTORY_TURNS = 5
 MAX_INPUT_LENGTH = 1024
+MAX_MESSAGE_CHARS = int(os.getenv("MAX_MESSAGE_CHARS", "1000"))
 
 # App settings
 APP_TITLE = "Customer Support Chatbot"

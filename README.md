@@ -139,11 +139,6 @@ On macOS/Linux, use:
 
 ```bash
 GRADIO_SHARE=true python app.py
-What's your return policy?
-Where is my order?
-How long does shipping take?
-Do you sell wireless headphones?
-
 ```
 
 ## Configuration
@@ -156,11 +151,26 @@ PORT=7860
 GRADIO_SERVER_NAME=0.0.0.0
 GRADIO_SHARE=false
 DEBUG=false
+MAX_MESSAGE_CHARS=1000
 ```
 
 For Hugging Face Spaces, keep `GRADIO_SHARE=false`. Spaces already gives the app a public URL, so a Gradio share tunnel is not needed.
 
 For a temporary local public URL, set `GRADIO_SHARE=true` before running `python app.py`.
+
+## Security And Safety Design
+
+This project is intentionally scoped like a consulting AI proof of concept: it demonstrates useful automation while keeping clear boundaries around sensitive workflows.
+
+- Empty and very long messages are rejected before routing.
+- SSNs, credit card numbers, phone numbers, and email addresses are blocked at input and output.
+- Prompt-injection attempts such as requests to ignore instructions or reveal hidden prompts are refused.
+- The chatbot avoids collecting private customer details directly in chat and points users to secure forms for addresses, photos, labels, and account-specific information.
+- Gradio analytics are disabled in `app.py`.
+- The app uses deterministic support flows first and only calls the Transformer model as a fallback.
+- Model weights are downloaded from Hugging Face at runtime and should not be committed to the repository.
+
+For a production client project, the next security upgrades would be authentication, secure backend APIs for order lookup, audit logging without raw PII, rate limiting, and a stronger moderation layer.
 
 ## Run Tests
 
@@ -214,6 +224,7 @@ git push space HEAD:main
 
 - Hybrid chatbot design: deterministic support workflows first, generative model fallback second.
 - Clear safety controls for PII, toxic language, and unsupported topics.
+- Consulting-ready boundaries: simulated business workflows, explicit limitations, and safe handoff to secure forms for private data.
 - Deployable Gradio interface with Hugging Face Space metadata.
 - Modular Python code that separates UI, business logic, retrieval, guardrails, and model inference.
 - Test coverage for routing, guardrails, knowledge base behavior, templates, and model helper functions.

@@ -14,7 +14,7 @@ TEMPLATES = {
         "I can help with that! Could you please provide your order number so I can check if it's still eligible for cancellation?",
     ],
     "return_request": [
-        "I understand you'd like to return an item. Please share your order number and the item you'd like to return, and I'll guide you through the process.",
+        "I understand you'd like to return an item. Please share only your order number here, and use the secure returns form for private details.",
     ],
     "shipping_info": [
         "I'd be happy to help with shipping questions! Could you tell me what you'd like to know — delivery times, costs, or something else?",
@@ -29,7 +29,7 @@ TEMPLATES = {
         "I'd be happy to help you find what you're looking for! What type of product are you interested in?",
     ],
     "damaged_item": [
-        "I'm so sorry your item arrived damaged. Let's make this right. Could you share your order number and a photo of the damage?",
+        "I'm so sorry your item arrived damaged. Please share only your order number here. Use the secure support form to upload photos or private details.",
     ],
     "exchange": [
         "I can help with an exchange! Please share your order number and the size/variant you need instead.",
@@ -38,7 +38,7 @@ TEMPLATES = {
         "I understand your package hasn't arrived. Let me look into this for you. Could you provide your order number?",
     ],
     "change_address": [
-        "I can help update your shipping address. Could you provide your order number and the correct address?",
+        "I can help start an address update. Please share only your order number here, then use the secure support form for the new address.",
     ],
     "discount": [
         "Looking for a deal? Please provide the promo code you'd like to use, or check our current promotions on the homepage!",

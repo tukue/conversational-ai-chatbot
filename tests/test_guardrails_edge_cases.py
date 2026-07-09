@@ -7,12 +7,12 @@ from src.guardrails import check_input, check_output, is_on_topic
 
 def test_empty_input():
     safe, _ = check_input("")
-    assert safe
+    assert not safe
 
 
 def test_whitespace_input():
     safe, _ = check_input("   ")
-    assert safe
+    assert not safe
 
 
 def test_polite_profanity_not_blocked():
@@ -48,6 +48,12 @@ def test_phone_number():
 def test_safe_input_long():
     safe, _ = check_input("I want to return a pair of shoes I bought last week. They don't fit properly.")
     assert safe
+
+
+def test_too_long_input_blocked():
+    safe, reason = check_input("x" * 1001)
+    assert not safe
+    assert "under 1,000 characters" in reason
 
 
 def test_check_output_empty():
