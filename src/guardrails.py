@@ -1,4 +1,16 @@
+import os
 import re
+
+MAX_MESSAGE_CHARS = int(os.getenv("MAX_MESSAGE_CHARS", "1000"))
+
+SAFE_INPUT_MESSAGE = "Please enter a customer support question so I can help."
+LONG_INPUT_MESSAGE = (
+    f"Please keep your message under {MAX_MESSAGE_CHARS:,} characters so I can handle it safely."
+)
+PII_INPUT_MESSAGE = (
+    "Please don't share sensitive personal information here. "
+    "For security, use the secure support form for private details."
+)
 
 # Toxic / abusive patterns to block
 TOXIC_PATTERNS = [
@@ -13,6 +25,7 @@ PII_PATTERNS = [
     r"\b\d{16}\b",                          # raw credit card
     r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b",  # formatted card
     r"\b\d{3}[-]?\d{3}[-]?\d{4}\b",        # phone (US)
+    r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",  # email
 ]
 
 BUSINESS_BLOCKLIST = [
@@ -26,6 +39,13 @@ BUSINESS_BLOCKLIST = [
     "override",
 ]
 
+PROMPT_INJECTION_PATTERNS = [
+    r"ignore (all )?(previous|prior|above) instructions",
+    r"forget (all )?(previous|prior|above) instructions",
+    r"reveal (your )?(system|developer) prompt",
+    r"show (your )?(system|developer) prompt",
+    r"act as (an? )?(unrestricted|uncensored|jailbroken)",
+]
 SUPPORTED_TOPICS = [
     "order", "return", "refund", "shipping", "delivery", "track",
     "product", "item", "price", "payment", "card", "paypal",
@@ -38,18 +58,32 @@ SUPPORTED_TOPICS = [
 
 
 def check_input(message):
+    if message is None:
+        return False, SAFE_INPUT_MESSAGE
+
+    message = str(message).strip()
+    if not message:
+        return False, SAFE_INPUT_MESSAGE
+
+    if len(message) > MAX_MESSAGE_CHARS:
+        return False, LONG_INPUT_MESSAGE
+
     message_lower = message.lower()
+
+    for pattern in PROMPT_INJECTION_PATTERNS:
+        if re.search(pattern, message_lower):
+            return False, (
+                "I can't follow requests to bypass my support role. "
+                "I can help with orders, returns, shipping, products, and payments."
+            )
 
     for pattern in TOXIC_PATTERNS:
         if re.search(pattern, message_lower):
             return False, "I'm here to help with customer support. Please keep our conversation respectful."
 
     for pattern in PII_PATTERNS:
-        if re.search(pattern, message):
-            return False, (
-                "Please don't share sensitive personal information here. "
-                "For security, I'll transfer you to a secure form."
-            )
+        if re.search(pattern, message, re.IGNORECASE):
+            return False, PII_INPUT_MESSAGE
 
     return True, ""
 
@@ -58,7 +92,7 @@ def check_output(response, message):
     response_lower = response.lower()
 
     for pattern in PII_PATTERNS:
-        if re.search(pattern, response):
+        if re.search(pattern, response, re.IGNORECASE):
             return False, "I can't share that information. Let me connect you with a human agent."
 
     for phrase in BUSINESS_BLOCKLIST:
