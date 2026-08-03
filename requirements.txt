@@ -1,13 +1,2 @@
-torch>=2.0.0
-torchvision
-torchaudio
-transformers>=4.30.0
-accelerate
-sentencepiece
-huggingface_hub
 gradio>=4.0.0
-numpy
-pandas
-matplotlib
-tqdm
-ipywidgets
+pytest>=8.0.0

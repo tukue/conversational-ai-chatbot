@@ -1,8 +1,10 @@
 import json
 import os
+import re
 
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+MIN_QUERY_LENGTH = 3
 
 
 def load_json(filename):
@@ -11,13 +13,36 @@ def load_json(filename):
         return json.load(f)
 
 
+def _tokenize(text):
+    tokens = re.findall(r"[a-z0-9]+", text.lower())
+    normalized = []
+
+    for token in tokens:
+        if len(token) > 3 and token.endswith("ies"):
+            token = token[:-3] + "y"
+        elif len(token) > 4 and token.endswith("ing"):
+            token = token[:-3]
+            if len(token) > 2 and token[-1] == token[-2]:
+                token = token[:-1]
+        elif len(token) > 3 and token.endswith("s"):
+            token = token[:-1]
+
+        normalized.append(token)
+
+    return normalized
+
+
 def _word_overlap(a, b):
-    words_a = set(a.lower().split())
-    words_b = set(b.lower().split())
+    words_a = set(_tokenize(a))
+    words_b = set(_tokenize(b))
     if not words_a or not words_b:
         return 0
     intersection = words_a & words_b
     return len(intersection) / max(len(words_a), len(words_b))
+
+
+def _is_searchable_query(query):
+    return len(query.strip()) >= MIN_QUERY_LENGTH and bool(_tokenize(query))
 
 
 class FAQSearch:
@@ -25,8 +50,10 @@ class FAQSearch:
         self.faqs = load_json("faq.json")
 
     def search(self, query, top_k=3):
+        if not _is_searchable_query(query):
+            return []
+
         query_lower = query.lower()
-        query_words = set(query_lower.split())
         scored = []
 
         for faq in self.faqs:
@@ -54,8 +81,10 @@ class ProductSearch:
         self.products = load_json("products.json")
 
     def search(self, query, top_k=3):
+        if not _is_searchable_query(query):
+            return []
+
         query_lower = query.lower()
-        query_words = set(query_lower.split())
         scored = []
 
         for product in self.products:

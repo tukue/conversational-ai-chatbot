@@ -1,9 +1,24 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
-import torch
 import config
 
 
+AutoTokenizer = None
+AutoModelForCausalLM = None
+
+
 def load_model():
+    global AutoTokenizer, AutoModelForCausalLM
+    if AutoTokenizer is None or AutoModelForCausalLM is None:
+        try:
+            from transformers import AutoTokenizer as TransformersAutoTokenizer
+            from transformers import AutoModelForCausalLM as TransformersAutoModelForCausalLM
+        except ImportError as exc:
+            raise RuntimeError(
+                "Model dependencies are not installed. Install requirements.txt to enable DialoGPT responses."
+            ) from exc
+
+        AutoTokenizer = TransformersAutoTokenizer
+        AutoModelForCausalLM = TransformersAutoModelForCausalLM
+
     print(f"Loading model: {config.MODEL_NAME}")
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME)
     model = AutoModelForCausalLM.from_pretrained(config.MODEL_NAME)

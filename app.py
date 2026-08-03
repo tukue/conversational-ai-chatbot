@@ -224,19 +224,19 @@ EXAMPLES = [
 
 HEADER_HTML = """
 <div class="app-header">
-    <h1>🛒 Customer Support</h1>
-    <p class="subtitle">Ask about orders, returns, shipping, products — I'm here 24/7</p>
-    <span class="badge">✨ AI-Powered</span>
+    <h1>Customer Support</h1>
+    <p class="subtitle">Ask about orders, returns, shipping, and products. Available 24/7.</p>
+    <span class="badge">AI-Powered</span>
 </div>
 """
 
 FOOTER_HTML = """
 <div class="app-footer">
-    <span>Powered by DialoGPT</span>
-    <span class="dot">·</span>
-    <span>E-commerce Support AI</span>
-    <span class="dot">·</span>
-    <span>Responses are AI-generated</span>
+    <span>Intent routing</span>
+    <span class="dot">|</span>
+    <span>Knowledge-base retrieval</span>
+    <span class="dot">|</span>
+    <span>Guardrailed AI support</span>
 </div>
 """
 

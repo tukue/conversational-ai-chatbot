@@ -35,6 +35,12 @@ def test_faq_search_partial_word():
     assert "return" in results[0]["answer"].lower()
 
 
+def test_faq_search_punctuation_normalized():
+    results = faq.search("return-policy?")
+    assert len(results) > 0
+    assert results[0]["id"] == "return_policy"
+
+
 def test_faq_search_case_insensitive():
     results_lower = faq.search("return policy")
     results_upper = faq.search("RETURN POLICY")
@@ -82,6 +88,12 @@ def test_product_search_partial():
     results = products.search("headphones")
     assert len(results) > 0
     assert "PROD-001" in [p["id"] for p in results]
+
+
+def test_product_search_plural_normalized():
+    results = products.search("candles")
+    assert len(results) > 0
+    assert "PROD-007" in [p["id"] for p in results]
 
 
 def test_product_search_case_insensitive():

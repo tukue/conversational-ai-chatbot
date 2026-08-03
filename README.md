@@ -1,110 +1,105 @@
 # Conversational AI Customer Support Chatbot
 
-An intelligent customer support chatbot for e-commerce businesses, powered by Microsoft's DialoGPT-medium with intent routing, knowledge base retrieval, and guardrails.
+A compact customer-support chatbot MVP for e-commerce use cases. The project demonstrates practical AI engineering with intent routing, knowledge-base retrieval, product lookup, guardrails, conversation context, tests, and a containerized Gradio demo.
 
-## Business Impact
+The goal is to show a consultant-ready AI application without introducing a large platform rewrite.
 
-| Metric | Impact |
+## What This Demonstrates
+
+| Capability | Implementation |
 |---|---|
-| **Cost Reduction** | Automates 60-70% of Tier-1 support queries (order status, returns, shipping FAQs), reducing reliance on human agents |
-| **Response Time** | Instant responses vs. 4-24 hour email wait times — improves CSAT by eliminating customer wait |
-| **Agent Productivity** | Human agents focus on complex/escalated issues only, increasing throughput by 3x |
-| **Availability** | Handles inquiries outside business hours without overtime costs |
-| **Consistency** | Every customer gets the same accurate policy answer — no agent misinterpretation |
-| **Scalability** | Handles 1000+ concurrent conversations with zero marginal cost per interaction |
-| **Deflection Rate** | FAQ + product catalog search deflects tickets that would otherwise reach human support |
+| AI application design | Intent routing plus optional generative fallback |
+| Retrieval | FAQ and product catalog search over local JSON knowledge sources |
+| Responsible AI | Input/output guardrails for PII, profanity, off-topic prompts, and policy violations |
+| Backend quality | Modular Python services with focused tests |
+| Product thinking | Common customer support workflows: returns, shipping, orders, payments, products, complaints |
+| Deployment basics | Dockerfile and environment-driven configuration |
 
 ## Architecture
 
-```
-User Input
-    │
-    ▼
-┌─────────────┐    ┌──────────────┐
-│  Guardrails  │───▶│  Input Check │─── Toxic/PII → Blocked
-└─────────────┘    └──────────────┘
-    │
-    ▼
-┌─────────────┐
-│ Intent      │─── greeting, order_status, return_request, shipping_info,
-│ Classifier  │    product_inquiry, payment_issue, complaint, escalate, etc.
-└─────────────┘    (17 intents)
-    │
-    ▼
-┌──────────────────────────────────────────────┐
-│              Response Router                  │
-│                                              │
-│  Intent          →  Source                   │
-│  ───────────         ──────                   │
-│  greeting/closing   →  Template              │
-│  order_status       →  Template + ask for #  │
-│  return/shipping    →  FAQ knowledge base    │
-│  product_inquiry    →  Product catalog       │
-│  complaint/escalate →  Template + human      │
-│  general/unknown    →  DialoGPT (fallback)   │
-└──────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────┐
-│  Guardrails  │─── Output check → Filter unsafe responses
-└─────────────┘
-    │
-    ▼
-   User
+```mermaid
+flowchart TD
+    User[User message] --> Guardrails[Input guardrails]
+    Guardrails --> Topic[Topic check]
+    Topic --> Intent[Intent classifier]
+    Intent --> Router[Response router]
+    Router --> Templates[Response templates]
+    Router --> FAQ[FAQ search]
+    Router --> Products[Product search]
+    Router --> OptionalLLM[Optional DialoGPT fallback]
+    Templates --> Output[Output guardrails]
+    FAQ --> Output
+    Products --> Output
+    OptionalLLM --> Output
+    Output --> UI[Gradio chat UI]
 ```
 
-## Features
+## MVP Scope
 
-- **17 Intent Classifiers** — Routes queries to the right handler (order tracking, returns, shipping, payments, complaints, etc.)
-- **FAQ Knowledge Base** — 15 policy answers with keyword + word-overlap matching
-- **Product Catalog Search** — Lookup products by name, description, or category
-- **Response Templates** — Professional, brand-consistent replies for every intent
-- **Guardrails** — Blocks profanity, PII (SSN, credit cards, phone numbers), off-topic queries, and business policy violations
-- **DialoGPT Fallback** — General conversation handled by Microsoft's DialoGPT-medium when no intent matches
-- **Conversation History** — Maintains context across 5 most recent turns
-- **Docker Support** — One-command containerized deployment
+Included now:
 
-## Gradio UI
+- Gradio chat interface
+- Intent classification for common e-commerce support requests
+- FAQ retrieval
+- Product catalog lookup
+- Conversation history support
+- PII and profanity blocking
+- Off-topic redirection
+- Business-policy output checks
+- Optional DialoGPT fallback behind `ENABLE_GENERATIVE_FALLBACK`
+- Docker support
+- Automated test suite
 
-The chatbot uses Gradio's `ChatInterface` with a polished customer support layout:
+Deferred intentionally:
 
-- **Branded header** with title and tagline
-- **Clickable example prompts** — users can start with one-click queries
-- **Chat history** preserved across 5 turns for context-aware replies
-- **Custom CSS** for professional look (blue accent, clean typography)
-- **Public share URL** (`share=True` in `config.py`) — creates a temporary public URL via Gradio tunnel, accessible from any device anywhere without deployment
-- **LAN access** — binds to `0.0.0.0`, reachable from any device on your network at `http://<base_url>:7860`
-- **Mobile responsive** — works on desktop and phone browsers
+- Authentication
+- Database persistence
+- Admin dashboard
+- RAG over uploaded files
+- Cloud infrastructure
+- Kubernetes
+- Full analytics
 
-### Example prompts shown in UI
-
-```
-What's your return policy?
-Where is my order?
-How long does shipping take?
-Do you sell wireless headphones?
-I want to cancel my order
-My package is lost
-Talk to a human agent
-```
+These are useful next steps, but not required for the current consultant demo.
 
 ## Quick Start
 
-Set `SHARE = True` in `config.py` to publicly share your chatbot URL via Gradio's tunnel:
-
 ```bash
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
 ```
 
-The app will be accessible at:
-- **Local/LAN**: `http://<base_url>:7860` (replace `<base_url>` with your machine's IP or `localhost`)
-- **Public URL** (e.g. `https://xxxx.gradio.live`) — printed in the terminal, accessible from any device anywhere with no additional setup
+Open the local Gradio URL printed in the terminal.
+
+## Optional Generative Fallback
+
+The default chatbot path is deterministic and does not require model downloads. To enable DialoGPT fallback for unmatched messages:
+
+```bash
+pip install -r requirements-ai.txt
+set ENABLE_GENERATIVE_FALLBACK=true
+python app.py
+```
+
+Use this only when you want to demonstrate local open-source model integration. The rule-based and retrieval paths are enough for most demos.
+
+## Configuration
+
+Copy `.env.example` values into your environment as needed.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GRADIO_SHARE` | `false` | Enable Gradio public share tunnel |
+| `GRADIO_DEBUG` | `false` | Enable Gradio debug mode |
+| `CHATBOT_DEVICE` | auto/CPU | Override model device when AI fallback is enabled |
+| `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable optional DialoGPT fallback |
 
 ## Run Tests
 
 ```bash
-python -m pytest tests/ -v
+pytest -q
 ```
 
 ## Docker
@@ -114,35 +109,26 @@ docker build -t support-chatbot .
 docker run -p 7860:7860 support-chatbot
 ```
 
-## Hugging Face Spaces Deployment
+## Demo Prompts
 
-### Option A — Gradio SDK (no Docker, easier)
+```text
+What's your return policy?
+Where is my order?
+Track order AB-12345
+How long does shipping take?
+Do you sell wireless headphones?
+I want to cancel my order
+My package is lost
+Talk to a human agent
+```
 
-1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → **Create new Space**
-2. Choose **Gradio** as the SDK
-3. In the Space settings, set **Hardware** to at least **CPU 2 vCPU · 16 GB** (DialoGPT needs memory)
-4. Push the code:
-   ```bash
-   git remote add space https://huggingface.co/spaces/YOUR_USER/SPACE_NAME
-   git push space main
-   ```
-5. Hugging Face auto-installs `requirements.txt` and runs `app.py`
+## Recommended Next Improvements
 
-### Option B — Docker (more control)
+Keep the next phase small:
 
-1. Create a Space → choose **Docker** as the Space SDK
-2. Push the code including the `Dockerfile`
-3. Hugging Face builds and runs the container automatically
+1. Add a FastAPI wrapper with `/chat` and `/health`.
+2. Add OpenAI integration as the primary optional LLM provider.
+3. Add simple document Q&A with citations.
+4. Add Docker Compose for local API/UI demos.
 
-### Notes for Hugging Face
-
-- The first load downloads DialoGPT-medium (~1.8 GB), which can take 2-5 minutes
-- Use **CPU upgrade** or **GPU (T4 small)** for faster inference
-- Set `SHARE = False` in `config.py` on HF Spaces (public URL tunnel not needed on HF)
-- Environment variables can be set in Space Settings → Repository Secrets
-
-## Other Deployment Options
-
-- **Local**: `python app.py`
-- **Docker**: Containerized for any cloud provider (AWS ECS, GCP Cloud Run, Azure)
-- **REST API**: Extend `app.py` with FastAPI for custom frontend integration
+That path improves the project as an AI engineering showcase without forcing a major architectural migration today.
