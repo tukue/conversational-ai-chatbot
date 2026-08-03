@@ -27,5 +27,6 @@ APP_TITLE = "Customer Support Chatbot"
 APP_DESCRIPTION = "AI-powered customer support chatbot using Microsoft's DialoGPT-medium"
 APP_THEME = "soft"
 SHARE = os.getenv("GRADIO_SHARE", "false").lower() == "true"
-SERVER_NAME = "0.0.0.0"
-DEBUG = os.getenv("GRADIO_DEBUG", "false").lower() == "true"
+SERVER_NAME = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
+SERVER_PORT = int(os.getenv("PORT", "7860"))
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"

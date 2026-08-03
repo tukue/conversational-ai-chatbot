@@ -224,8 +224,8 @@ EXAMPLES = [
 
 HEADER_HTML = """
 <div class="app-header">
-    <h1>Customer Support</h1>
-    <p class="subtitle">Ask about orders, returns, shipping, and products. Available 24/7.</p>
+    <h1>Customer Support AI</h1>
+    <p class="subtitle">Ask about orders, returns, shipping, and products. I'm here 24/7.</p>
     <span class="badge">AI-Powered</span>
 </div>
 """
@@ -256,12 +256,14 @@ def main():
             description=None,
             examples=EXAMPLES,
             cache_examples=False,
+            type="messages",
         )
 
         gr.HTML(FOOTER_HTML)
 
     demo.launch(
         server_name=config.SERVER_NAME,
+        server_port=config.SERVER_PORT,
         share=config.SHARE,
         debug=config.DEBUG,
         inline=False,

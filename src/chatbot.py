@@ -1,4 +1,5 @@
 import re
+import logging
 import config
 from src.intent import classify_intent
 from src.templates import get_template
@@ -9,6 +10,27 @@ from src.guardrails import check_input, check_output, is_on_topic
 tokenizer, model = None, None
 faq = FAQSearch()
 products = ProductSearch()
+logger = logging.getLogger(__name__)
+
+
+def _history_pairs(history):
+    if not history:
+        return []
+
+    if isinstance(history, list) and history and isinstance(history[0], dict):
+        pairs = []
+        pending_user = None
+        for item in history:
+            role = item.get("role")
+            content = item.get("content", "")
+            if role == "user":
+                pending_user = content
+            elif role == "assistant" and pending_user is not None:
+                pairs.append((pending_user, content))
+                pending_user = None
+        return pairs
+
+    return history
 
 
 def _extract_order_number(message):
@@ -17,9 +39,7 @@ def _extract_order_number(message):
 
 
 def _find_order_in_history(history):
-    if not history:
-        return None
-    for user_msg, _ in reversed(history):
+    for user_msg, _ in reversed(_history_pairs(history)):
         num = _extract_order_number(user_msg)
         if num:
             return num
@@ -29,7 +49,7 @@ def _find_order_in_history(history):
 def _suggestion(intent):
     suggestions = {
         "order_status": "You can also track your order anytime in your account under 'My Orders'.",
-        "return_request": "Need a prepaid return label? Just share your email and I'll send one.",
+        "return_request": "Need a prepaid return label? Use the secure returns portal so private details stay protected.",
         "shipping_info": "You can check estimated delivery times on any product page.",
         "product_inquiry": "Would you like me to check stock for a specific item?",
         "cancel_order": "If your order already shipped, you can start a return once it arrives.",
@@ -48,20 +68,29 @@ def ensure_model_loaded():
 
 def build_conversation(message, history):
     conversation = ""
-    if history:
-        for user_msg, bot_msg in history[-config.MAX_HISTORY_TURNS:]:
-            conversation += user_msg + tokenizer.eos_token
-            conversation += bot_msg + tokenizer.eos_token
+    for user_msg, bot_msg in _history_pairs(history)[-config.MAX_HISTORY_TURNS:]:
+        conversation += user_msg + tokenizer.eos_token
+        conversation += bot_msg + tokenizer.eos_token
     conversation += message + tokenizer.eos_token
     return conversation
 
 
 def respond_with_dialogpt(message, history):
-    ensure_model_loaded()
-    conversation = build_conversation(message, history)
+    try:
+        ensure_model_loaded()
+        conversation = build_conversation(message, history)
 
-    from src.model import generate_response
-    return generate_response(tokenizer, model, conversation)
+        from src.model import generate_response
+        response = generate_response(tokenizer, model, conversation)
+        if response.strip():
+            return response
+    except Exception as exc:
+        logger.warning("Fallback model unavailable: %s", exc.__class__.__name__)
+
+    return (
+        "I can help with orders, returns, shipping, products, payments, and account questions. "
+        "Could you share a few more details about what you need?"
+    )
 
 
 def chat(message, history):
