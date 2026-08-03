@@ -232,11 +232,11 @@ HEADER_HTML = """
 
 FOOTER_HTML = """
 <div class="app-footer">
-    <span>Powered by DialoGPT</span>
-    <span class="dot">·</span>
-    <span>E-commerce Support AI</span>
-    <span class="dot">·</span>
-    <span>Responses are AI-generated</span>
+    <span>Intent routing</span>
+    <span class="dot">|</span>
+    <span>Knowledge-base retrieval</span>
+    <span class="dot">|</span>
+    <span>Guardrailed AI support</span>
 </div>
 """
 

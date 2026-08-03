@@ -43,6 +43,20 @@ For recruiters and portfolio links, Hugging Face Spaces is the recommended optio
 - Redirect off-topic or unsafe prompts back to customer support.
 - Use `microsoft/DialoGPT-medium` only as a fallback when a question is not handled by the structured support logic.
 
+A compact customer-support chatbot MVP for e-commerce use cases. The project demonstrates practical AI engineering with intent routing, knowledge-base retrieval, product lookup, guardrails, conversation context, tests, and a containerized Gradio demo.
+
+The goal is to show a consultant-ready AI application without introducing a large platform rewrite.
+
+## What This Demonstrates
+
+| Capability | Implementation |
+|---|---|
+| AI application design | Intent routing plus optional generative fallback |
+| Retrieval | FAQ and product catalog search over local JSON knowledge sources |
+| Responsible AI | Input/output guardrails for PII, profanity, off-topic prompts, and policy violations |
+| Backend quality | Modular Python services with focused tests |
+| Product thinking | Common customer support workflows: returns, shipping, orders, payments, products, complaints |
+| Deployment basics | Dockerfile and environment-driven configuration |
 ## Architecture
 
 ```text
@@ -92,6 +106,53 @@ Gradio chat response
 
 Use Python 3.10 or newer.
 
+```mermaid
+flowchart TD
+    User[User message] --> Guardrails[Input guardrails]
+    Guardrails --> Topic[Topic check]
+    Topic --> Intent[Intent classifier]
+    Intent --> Router[Response router]
+    Router --> Templates[Response templates]
+    Router --> FAQ[FAQ search]
+    Router --> Products[Product search]
+    Router --> OptionalLLM[Optional DialoGPT fallback]
+    Templates --> Output[Output guardrails]
+    FAQ --> Output
+    Products --> Output
+    OptionalLLM --> Output
+    Output --> UI[Gradio chat UI]
+```
+
+## MVP Scope
+
+Included now:
+
+- Gradio chat interface
+- Intent classification for common e-commerce support requests
+- FAQ retrieval
+- Product catalog lookup
+- Conversation history support
+- PII and profanity blocking
+- Off-topic redirection
+- Business-policy output checks
+- Optional DialoGPT fallback behind `ENABLE_GENERATIVE_FALLBACK`
+- Docker support
+- Automated test suite
+
+Deferred intentionally:
+
+- Authentication
+- Database persistence
+- Admin dashboard
+- RAG over uploaded files
+- Cloud infrastructure
+- Kubernetes
+- Full analytics
+
+These are useful next steps, but not required for the current consultant demo.
+
+## Quick Start
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
@@ -99,78 +160,30 @@ pip install -r requirements.txt
 python app.py
 ```
 
-On macOS/Linux, activate the environment with:
+Open the local Gradio URL printed in the terminal.
+
+## Optional Generative Fallback
+
+The default chatbot path is deterministic and does not require model downloads. To enable DialoGPT fallback for unmatched messages:
 
 ```bash
-source .venv/bin/activate
-```
-
-Open the local URL printed by Gradio, usually:
-
-```text
-http://127.0.0.1:7860
-```
-
-## Temporary Public URL With Gradio Share
-
-If you want to quickly share the chatbot from your local machine, enable Gradio sharing:
-
-```powershell
-$env:GRADIO_SHARE="true"
+pip install -r requirements-ai.txt
+set ENABLE_GENERATIVE_FALLBACK=true
 python app.py
 ```
 
-Gradio will print a temporary public URL that looks like this:
-
-```text
-https://your-random-name.gradio.live
-```
-
-Use this option for quick testing, demos, or sending the app to someone before deploying to Hugging Face Spaces.
-
-Important notes:
-
-- The public Gradio share URL is temporary.
-- The URL stops working when your local app stops running.
-- Do not use Gradio share for a permanent portfolio link.
-- For a permanent public deployment, use Hugging Face Spaces.
-
-On macOS/Linux, use:
-
-```bash
-GRADIO_SHARE=true python app.py
-```
+Use this only when you want to demonstrate local open-source model integration. The rule-based and retrieval paths are enough for most demos.
 
 ## Configuration
 
-The app works without secrets. These optional environment variables are supported:
+Copy `.env.example` values into your environment as needed.
 
-```bash
-MODEL_NAME=microsoft/DialoGPT-medium
-PORT=7860
-GRADIO_SERVER_NAME=0.0.0.0
-GRADIO_SHARE=false
-DEBUG=false
-MAX_MESSAGE_CHARS=1000
-```
-
-For Hugging Face Spaces, keep `GRADIO_SHARE=false`. Spaces already gives the app a public URL, so a Gradio share tunnel is not needed.
-
-For a temporary local public URL, set `GRADIO_SHARE=true` before running `python app.py`.
-
-## Security And Safety Design
-
-This project is intentionally scoped like a consulting AI proof of concept: it demonstrates useful automation while keeping clear boundaries around sensitive workflows.
-
-- Empty and very long messages are rejected before routing.
-- SSNs, credit card numbers, phone numbers, and email addresses are blocked at input and output.
-- Prompt-injection attempts such as requests to ignore instructions or reveal hidden prompts are refused.
-- The chatbot avoids collecting private customer details directly in chat and points users to secure forms for addresses, photos, labels, and account-specific information.
-- Gradio analytics are disabled in `app.py`.
-- The app uses deterministic support flows first and only calls the Transformer model as a fallback.
-- Model weights are downloaded from Hugging Face at runtime and should not be committed to the repository.
-
-For a production client project, the next security upgrades would be authentication, secure backend APIs for order lookup, audit logging without raw PII, rate limiting, and a stronger moderation layer.
+| Variable | Default | Purpose |
+|---|---|---|
+| `GRADIO_SHARE` | `false` | Enable Gradio public share tunnel |
+| `GRADIO_DEBUG` | `false` | Enable Gradio debug mode |
+| `CHATBOT_DEVICE` | auto/CPU | Override model device when AI fallback is enabled |
+| `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable optional DialoGPT fallback |
 
 ## Run Tests
 

@@ -37,6 +37,19 @@ def test_chat_order_status():
     assert "order number" in response.lower()
 
 
+def test_chat_order_status_with_alphanumeric_order_number():
+    response = chat("Track order AB-12345", [])
+    assert "AB-12345" in response
+
+
+def test_chat_order_status_uses_history_order_number():
+    history = [
+        ("My order number is 12345", "Thanks, let me check that."),
+    ]
+    response = chat("Where is my order?", history)
+    assert "#12345" in response
+
+
 def test_chat_product_found():
     response = chat("Do you sell wireless headphones?", [])
     assert "PROD-001" in response

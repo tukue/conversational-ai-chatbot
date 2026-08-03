@@ -34,7 +34,7 @@ def _history_pairs(history):
 
 
 def _extract_order_number(message):
-    match = re.search(r'\b(\d{5,})\b', message)
+    match = re.search(r'\b(?:order\s*#?\s*)?([A-Z]{0,4}-?\d{5,})\b', message, re.IGNORECASE)
     return match.group(1) if match else None
 
 
@@ -110,6 +110,7 @@ def chat(message, history):
     known_intents = {
         "greeting", "closing", "cancel_order", "change_address",
         "payment_method", "contact_human", "escalate", "discount", "gift_card",
+        "complaint",
     }
 
     if intent in known_intents:
@@ -120,7 +121,7 @@ def chat(message, history):
         tip = _suggestion(intent)
         return response + ("\n\n" + tip if tip else "")
 
-    if intent in {"return_request", "shipping_info", "damaged_item", "exchange", "lost_package", "complaint"}:
+    if intent in {"return_request", "shipping_info", "damaged_item", "exchange", "lost_package"}:
         results = faq.search(message)
         if results:
             safe_out, response = check_output(results[0]["answer"], message)
@@ -159,5 +160,8 @@ def chat(message, history):
         response = get_template("product_inquiry")
         return check_output(response, message)[1]
 
-    response = respond_with_dialogpt(message, history)
+    if config.ENABLE_GENERATIVE_FALLBACK:
+        response = respond_with_dialogpt(message, history)
+    else:
+        response = get_template("general")
     return check_output(response, message)[1]

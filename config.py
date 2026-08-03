@@ -1,10 +1,17 @@
 import os
 
-import torch
+
+def _detect_device():
+    try:
+        import torch
+    except ImportError:
+        return "cpu"
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 # Model settings
-MODEL_NAME = os.getenv("MODEL_NAME", "microsoft/DialoGPT-medium")
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+MODEL_NAME = "microsoft/DialoGPT-medium"
+DEVICE = os.getenv("CHATBOT_DEVICE") or _detect_device()
 
 # Generation parameters
 MAX_NEW_TOKENS = 100
@@ -13,7 +20,7 @@ TOP_P = 0.95
 TEMPERATURE = 0.7
 MAX_HISTORY_TURNS = 5
 MAX_INPUT_LENGTH = 1024
-MAX_MESSAGE_CHARS = int(os.getenv("MAX_MESSAGE_CHARS", "1000"))
+ENABLE_GENERATIVE_FALLBACK = os.getenv("ENABLE_GENERATIVE_FALLBACK", "false").lower() == "true"
 
 # App settings
 APP_TITLE = "Customer Support Chatbot"
