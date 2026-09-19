@@ -21,6 +21,8 @@ short_description: E-commerce support chatbot with intent routing, FAQs, product
 
 # Customer Support AI Chatbot
 
+[![Deploy to HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97-Deploy%20to%20Spaces-blue)](https://huggingface.co/spaces/new?sdk=gradio)
+
 An e-commerce customer support chatbot built with Gradio and Hugging Face Transformers. It combines rule-based intent routing, FAQ retrieval, product search, safety guardrails, and a DialoGPT fallback model for general conversation.
 
 This project is designed as an AI portfolio project: it shows practical product thinking, deployment readiness, and clean separation between UI, routing, safety, knowledge base, and model code.
@@ -159,7 +161,109 @@ git push space main
 | `CHATBOT_DEVICE` | auto/CPU | Override model device when AI fallback is enabled |
 | `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable optional DialoGPT fallback |
 
-## Deployment Notes
+## Deploy to Hugging Face Spaces
+
+### Option A — Auto-sync via GitHub Actions (recommended)
+
+This pushes code to your Space automatically on every commit to `main`.
+
+**1. Create the Space**
+
+Go to https://huggingface.co/spaces and click **Create new Space**.
+
+| Field | Value |
+|---|---|
+| Space name | `conversational-ai-chatbot` (or your choice) |
+| License | Choose any |
+| SDK | **Gradio** |
+| Visibility | Public (for portfolio) |
+
+Click **Create Space**. Note the Space ID shown in the URL: `https://huggingface.co/spaces/YOUR_USERNAME/SPACE_NAME`.
+
+**2. Add the GitHub secret**
+
+Go to your GitHub repo **Settings > Secrets and variables > Actions > New repository secret**:
+
+| Name | Value |
+|---|---|
+| `HF_SPACE` | `YOUR_USERNAME/SPACE_NAME` (e.g. `tukue/conversational-ai-chatbot`) |
+
+No `HF_TOKEN` is needed. The sync uses `huggingface-cli upload` which works with the Space's public endpoint.
+
+**3. Push to `main`**
+
+```bash
+git push origin main
+```
+
+The GitHub Action runs automatically and syncs all files to your Space. Check the workflow status at **Actions** tab in your repo.
+
+**4. Set environment variables (optional)**
+
+In your Space, go to **Settings > Variables and secrets > Variables** and add:
+
+| Name | Value | Purpose |
+|---|---|---|
+| `ENABLE_GENERATIVE_FALLBACK` | `true` | Enable DialoGPT fallback for unmatched questions |
+| `MODEL_NAME` | `microsoft/DialoGPT-small` | Use a smaller/faster model (optional) |
+
+**5. Verify**
+
+Your Space URL: `https://huggingface.co/spaces/YOUR_USERNAME/SPACE_NAME`
+
+The Space builds automatically. First build takes 2-3 minutes (installing dependencies). Subsequent pushes sync in ~30 seconds.
+
+---
+
+### Option B — Manual push via Git
+
+If you prefer pushing directly from your terminal:
+
+```bash
+# Add the Space as a remote
+git remote add space https://huggingface.co/spaces/YOUR_USERNAME/SPACE_NAME
+
+# Push
+git push space main
+```
+
+For private repos, generate a [HuggingFace Access Token](https://huggingface.co/settings/tokens) with write access and use:
+
+```bash
+git remote add space https://YOUR_TOKEN@huggingface.co/spaces/YOUR_USERNAME/SPACE_NAME
+git push space main
+```
+
+---
+
+### Option C — Upload via CLI
+
+Install the HuggingFace CLI and upload files without git:
+
+```bash
+pip install huggingface_hub
+huggingface-cli login  # only if repo is private
+huggingface-cli upload \
+  --repo-type space \
+  --include "*.py" "*.txt" "*.json" "*.md" "*.yml" \
+  --exclude ".git/*" "__pycache__/*" \
+  YOUR_USERNAME/SPACE_NAME .
+```
+
+---
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Space shows "Build failed" | Check **Logs** tab. Usually a missing dependency in `requirements.txt`. |
+| App loads but chat doesn't work | Ensure `app_file: app.py` is in the README frontmatter (it is by default). |
+| Slow first response | Normal. DialoGPT downloads on first use (~500MB). Subsequent loads are cached. |
+| Out of memory on free tier | Set `MODEL_NAME=microsoft/DialoGPT-small` in Space variables, or remove DialoGPT entirely. |
+| Sync workflow skipped | Check that `HF_SPACE` secret is set correctly in GitHub repo settings. |
+| Port errors | HF Spaces handles ports automatically. Do not set `SERVER_PORT` manually. |
+
+### Deployment Notes
 
 - Do not commit downloaded model files. The model is loaded from the Hugging Face Hub at runtime and cached by the Space.
 - The first fallback response can be slower because the model may need to download and load.
