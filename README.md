@@ -6,7 +6,7 @@ colorTo: green
 sdk: gradio
 sdk_version: 4.44.1
 app_file: app.py
-python_version: 3.10
+python_version: "3.10"
 suggested_hardware: cpu-upgrade
 models:
   - microsoft/DialoGPT-medium
@@ -43,10 +43,6 @@ For recruiters and portfolio links, Hugging Face Spaces is the recommended optio
 - Redirect off-topic or unsafe prompts back to customer support.
 - Use `microsoft/DialoGPT-medium` only as a fallback when a question is not handled by the structured support logic.
 
-A compact customer-support chatbot MVP for e-commerce use cases. The project demonstrates practical AI engineering with intent routing, knowledge-base retrieval, product lookup, guardrails, conversation context, tests, and a containerized Gradio demo.
-
-The goal is to show a consultant-ready AI application without introducing a large platform rewrite.
-
 ## What This Demonstrates
 
 | Capability | Implementation |
@@ -57,6 +53,8 @@ The goal is to show a consultant-ready AI application without introducing a larg
 | Backend quality | Modular Python services with focused tests |
 | Product thinking | Common customer support workflows: returns, shipping, orders, payments, products, complaints |
 | Deployment basics | Dockerfile and environment-driven configuration |
+| CI/CD | GitHub Actions for tests, linting, and auto-sync to Hugging Face Spaces |
+
 ## Architecture
 
 ```text
@@ -66,11 +64,11 @@ User message
 Input guardrails
     |
     v
-Intent classifier
+Intent classifier (fuzzy matching)
     |
     +--> Template response
-    +--> FAQ search
-    +--> Product search
+    +--> FAQ search (TF-IDF + stemming)
+    +--> Product search (TF-IDF + stemming)
     +--> DialoGPT fallback
     |
     v
@@ -86,97 +84,73 @@ Gradio chat response
 .
 ├── app.py                  # Gradio UI and Hugging Face Space entrypoint
 ├── config.py               # Model, generation, and app settings
+├── runtime.txt             # Python version pinning for HF Spaces
 ├── requirements.txt        # Runtime dependencies for Hugging Face Spaces
+├── requirements-dev.txt    # Dev dependencies (pytest, ruff)
 ├── README.md               # Project docs and Hugging Face Space metadata
 ├── .gitignore              # Excludes caches, environments, and model files
+├── .github/
+│   └── workflows/
+│       ├── ci.yml          # CI: tests + lint on push/PR
+│       └── sync-to-hf.yml  # Auto-sync to Hugging Face Spaces
 ├── data/
 │   ├── faq.json            # FAQ knowledge base
 │   └── products.json       # Demo product catalog
 ├── src/
 │   ├── chatbot.py          # Main routing and chat logic
 │   ├── guardrails.py       # Input and output safety checks
-│   ├── intent.py           # Keyword-based intent classifier
+│   ├── intent.py           # Intent classifier with fuzzy matching
 │   ├── knowledge_base.py   # FAQ and product search helpers
 │   ├── model.py            # Transformers model loading and generation
 │   └── templates.py        # Support response templates
 └── tests/                  # Unit and integration tests
 ```
 
-## Local Setup
-
-Use Python 3.10 or newer.
-
-```mermaid
-flowchart TD
-    User[User message] --> Guardrails[Input guardrails]
-    Guardrails --> Topic[Topic check]
-    Topic --> Intent[Intent classifier]
-    Intent --> Router[Response router]
-    Router --> Templates[Response templates]
-    Router --> FAQ[FAQ search]
-    Router --> Products[Product search]
-    Router --> OptionalLLM[Optional DialoGPT fallback]
-    Templates --> Output[Output guardrails]
-    FAQ --> Output
-    Products --> Output
-    OptionalLLM --> Output
-    Output --> UI[Gradio chat UI]
-```
-
-## MVP Scope
-
-Included now:
-
-- Gradio chat interface
-- Intent classification for common e-commerce support requests
-- FAQ retrieval
-- Product catalog lookup
-- Conversation history support
-- PII and profanity blocking
-- Off-topic redirection
-- Business-policy output checks
-- Optional DialoGPT fallback behind `ENABLE_GENERATIVE_FALLBACK`
-- Docker support
-- Automated test suite
-
-Deferred intentionally:
-
-- Authentication
-- Database persistence
-- Admin dashboard
-- RAG over uploaded files
-- Cloud infrastructure
-- Kubernetes
-- Full analytics
-
-These are useful next steps, but not required for the current consultant demo.
-
 ## Quick Start
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
 ```
 
 Open the local Gradio URL printed in the terminal.
 
-## Optional Generative Fallback
-
-The default chatbot path is deterministic and does not require model downloads. To enable DialoGPT fallback for unmatched messages:
+## Development
 
 ```bash
-pip install -r requirements-ai.txt
-set ENABLE_GENERATIVE_FALLBACK=true
-python app.py
+pip install -r requirements-dev.txt
+python -m pytest tests/ -v
+ruff check . --select E,F,W --ignore E501
 ```
 
-Use this only when you want to demonstrate local open-source model integration. The rule-based and retrieval paths are enough for most demos.
+## CI/CD
+
+### GitHub Actions
+
+- **CI** (`.github/workflows/ci.yml`): runs tests and linting on every push to `main`/`develop` and on PRs to `main`.
+- **Sync to HF** (`.github/workflows/sync-to-hf.yml`): auto-pushes `main` to your Hugging Face Space on every push.
+
+### Setup
+
+1. Create two repository secrets in **Settings > Secrets and variables > Actions**:
+
+| Secret | Value |
+|---|---|
+| `HF_TOKEN` | Your Hugging Face access token (create at https://huggingface.co/settings/tokens) |
+| `HF_SPACE` | Your Space ID, e.g. `username/customer-support-ai-chatbot` |
+
+2. Push to `main`. The CI workflow runs tests. The sync workflow pushes to your Space.
+
+### Manual Sync
+
+```bash
+git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+git push space main
+```
 
 ## Configuration
-
-Copy `.env.example` values into your environment as needed.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -184,45 +158,6 @@ Copy `.env.example` values into your environment as needed.
 | `GRADIO_DEBUG` | `false` | Enable Gradio debug mode |
 | `CHATBOT_DEVICE` | auto/CPU | Override model device when AI fallback is enabled |
 | `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable optional DialoGPT fallback |
-
-## Run Tests
-
-```bash
-python -m pytest tests -v
-```
-
-`pytest` is not included in the deployment requirements because Hugging Face Spaces only needs runtime packages. Install it locally if you want to run the tests:
-
-```bash
-pip install pytest
-```
-
-## Hugging Face Spaces Deployment
-
-1. Push this repository to GitHub.
-2. Go to https://huggingface.co/spaces.
-3. Click **Create new Space**.
-4. Choose **Gradio** as the SDK.
-5. Name the Space, for example `customer-support-ai-chatbot`.
-6. Choose public visibility for a portfolio demo.
-7. After the Space is created, copy its Git URL.
-8. Add the Space as a remote:
-
-```bash
-git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
-```
-
-9. Push to the Space:
-
-```bash
-git push space main
-```
-
-If your local branch has a different name, use:
-
-```bash
-git push space HEAD:main
-```
 
 ## Deployment Notes
 
@@ -239,6 +174,7 @@ git push space HEAD:main
 - Clear safety controls for PII, toxic language, and unsupported topics.
 - Consulting-ready boundaries: simulated business workflows, explicit limitations, and safe handoff to secure forms for private data.
 - Deployable Gradio interface with Hugging Face Space metadata.
+- CI/CD pipeline with GitHub Actions and auto-sync to Hugging Face Spaces.
 - Modular Python code that separates UI, business logic, retrieval, guardrails, and model inference.
 - Test coverage for routing, guardrails, knowledge base behavior, templates, and model helper functions.
 
@@ -248,16 +184,3 @@ git push space HEAD:main
 - The FAQ and product search are keyword based. A production app could use embeddings and semantic search.
 - DialoGPT is a lightweight conversational fallback, not a modern instruction-tuned support model.
 - The guardrails are simple regex and keyword checks. Production systems should add stronger moderation and logging.
-
-## Final Checklist Before Deployment
-
-- `app.py` exists at the repository root.
-- `requirements.txt` contains only runtime dependencies.
-- `README.md` has Hugging Face Space YAML metadata.
-- `.gitignore` excludes virtual environments, caches, and model weights.
-- No `.env`, API keys, private customer data, or downloaded model files are committed.
-- The app starts locally with `python app.py`.
-- Optional local public sharing works with `GRADIO_SHARE=true python app.py`.
-- The Space is created with the Gradio SDK.
-- The Space build logs show successful dependency installation.
-- The Space UI loads and responds to example prompts.

@@ -3,6 +3,15 @@ import os
 from unittest.mock import patch, MagicMock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def mock_torch():
+    mock = MagicMock()
+    with patch.dict("sys.modules", {"torch": mock}):
+        yield mock
+
 
 @patch("src.model.AutoTokenizer")
 @patch("src.model.AutoModelForCausalLM")
@@ -95,7 +104,6 @@ def test_generate_response_skips_input_tokens_in_output(mock_model_cls, mock_tok
 
     result = generate_response(mock_tokenizer, mock_model, "Hello")
 
-    # Should decode only new tokens (after input length)
     mock_tokenizer.decode.assert_called_with(
         mock_output_ids[:, 5:][0],
         skip_special_tokens=True

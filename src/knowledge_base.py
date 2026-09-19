@@ -18,16 +18,40 @@ def _tokenize(text):
     normalized = []
 
     for token in tokens:
-        if len(token) > 3 and token.endswith("ies"):
-            token = token[:-3] + "y"
+        # Multi-step stemming: try longest suffixes first
+        if len(token) > 4 and token.endswith("tion"):
+            token = token[:-4] + "te"
+        elif len(token) > 4 and token.endswith("ness"):
+            token = token[:-4]
+        elif len(token) > 4 and token.endswith("ment"):
+            token = token[:-4]
+        elif len(token) > 4 and token.endswith("able"):
+            token = token[:-4]
+        elif len(token) > 4 and token.endswith("ible"):
+            token = token[:-4]
+        elif len(token) > 5 and token.endswith("izing"):
+            token = token[:-4] + "e"
         elif len(token) > 4 and token.endswith("ing"):
             token = token[:-3]
             if len(token) > 2 and token[-1] == token[-2]:
                 token = token[:-1]
+        elif len(token) > 4 and token.endswith("ies"):
+            token = token[:-3] + "y"
+        elif len(token) > 4 and token.endswith("ves"):
+            token = token[:-3] + "fe"
+        elif len(token) > 3 and token.endswith("es"):
+            token = token[:-2]
+        elif len(token) > 3 and token.endswith("ed"):
+            token = token[:-2]
+        elif len(token) > 3 and token.endswith("ly"):
+            token = token[:-2]
+        elif len(token) > 3 and token.endswith("er"):
+            token = token[:-2]
         elif len(token) > 3 and token.endswith("s"):
             token = token[:-1]
 
-        normalized.append(token)
+        if len(token) > 2:
+            normalized.append(token)
 
     return normalized
 

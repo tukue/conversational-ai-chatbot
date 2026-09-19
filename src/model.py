@@ -22,7 +22,9 @@ def load_model():
     print(f"Loading model: {config.MODEL_NAME}")
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME)
     model_kwargs = {"low_cpu_mem_usage": True}
+
     if config.DEVICE == "cuda":
+        import torch
         model_kwargs["torch_dtype"] = torch.float16
 
     model = AutoModelForCausalLM.from_pretrained(config.MODEL_NAME, **model_kwargs)
@@ -35,6 +37,8 @@ def load_model():
 
 
 def generate_response(tokenizer, model, input_text):
+    import torch
+
     input_ids = tokenizer.encode(
         input_text,
         return_tensors="pt",

@@ -9,6 +9,15 @@ def _detect_device():
 
     return "cuda" if torch.cuda.is_available() else "cpu"
 
+
+def _get_theme():
+    try:
+        from gradio.themes import Soft
+        return Soft()
+    except ImportError:
+        return "soft"
+
+
 # Model settings
 MODEL_NAME = "microsoft/DialoGPT-medium"
 DEVICE = os.getenv("CHATBOT_DEVICE") or _detect_device()
@@ -25,7 +34,7 @@ ENABLE_GENERATIVE_FALLBACK = os.getenv("ENABLE_GENERATIVE_FALLBACK", "false").lo
 # App settings
 APP_TITLE = "Customer Support Chatbot"
 APP_DESCRIPTION = "AI-powered customer support chatbot using Microsoft's DialoGPT-medium"
-APP_THEME = "soft"
+APP_THEME = _get_theme()
 SHARE = os.getenv("GRADIO_SHARE", "false").lower() == "true"
 SERVER_NAME = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
 SERVER_PORT = int(os.getenv("PORT", "7860"))

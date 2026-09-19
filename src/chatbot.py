@@ -3,14 +3,29 @@ import logging
 import config
 from src.intent import classify_intent
 from src.templates import get_template
-from src.knowledge_base import FAQSearch, ProductSearch
 from src.guardrails import check_input, check_output, is_on_topic
 
 
 tokenizer, model = None, None
-faq = FAQSearch()
-products = ProductSearch()
+_faq = None
+_products = None
 logger = logging.getLogger(__name__)
+
+
+def _get_faq():
+    global _faq
+    if _faq is None:
+        from src.knowledge_base import FAQSearch
+        _faq = FAQSearch()
+    return _faq
+
+
+def _get_products():
+    global _products
+    if _products is None:
+        from src.knowledge_base import ProductSearch
+        _products = ProductSearch()
+    return _products
 
 
 def _history_pairs(history):
@@ -122,7 +137,7 @@ def chat(message, history):
         return response + ("\n\n" + tip if tip else "")
 
     if intent in {"return_request", "shipping_info", "damaged_item", "exchange", "lost_package"}:
-        results = faq.search(message)
+        results = _get_faq().search(message)
         if results:
             safe_out, response = check_output(results[0]["answer"], message)
             return response if safe_out else get_template("escalate")
@@ -146,7 +161,7 @@ def chat(message, history):
         return check_output(response, message)[1]
 
     if intent == "product_inquiry":
-        matches = products.search(message)
+        matches = _get_products().search(message)
         if matches:
             p = matches[0]
             stock = "In stock" if p["in_stock"] else "Currently out of stock"

@@ -1,0 +1,47 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Sync to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ secrets.HF_SPACE }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::warning::HF_TOKEN secret not set. Skipping sync."
+            exit 0
+          fi
+
+          if [ -z "$HF_SPACE" ]; then
+            echo "::warning::HF_SPACE secret not set. Skipping sync."
+            exit 0
+          fi
+
+          echo "Syncing to Hugging Face Space: $HF_SPACE"
+
+          huggingface-cli login --token "$HF_TOKEN"
+
+          git remote add space "https://huggingface.co/spaces/$HF_SPACE" || true
+          git push space HEAD:main --force
+
+          echo "Sync complete: https://huggingface.co/spaces/$HF_SPACE"

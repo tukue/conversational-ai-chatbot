@@ -241,17 +241,20 @@ FOOTER_HTML = """
 """
 
 
+def respond(message, history):
+    return chat(message, history)
+
+
 def main():
     with gr.Blocks(
         css=CUSTOM_CSS,
         theme=config.APP_THEME,
         title=config.APP_TITLE,
-        analytics_enabled=False,
     ) as demo:
         gr.HTML(HEADER_HTML)
 
         gr.ChatInterface(
-            fn=chat,
+            fn=respond,
             title=None,
             description=None,
             examples=EXAMPLES,
