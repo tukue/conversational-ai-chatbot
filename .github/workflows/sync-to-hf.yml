@@ -8,6 +8,9 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -24,24 +27,20 @@ jobs:
 
       - name: Sync to Hugging Face Spaces
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ secrets.HF_SPACE }}
         run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "::warning::HF_TOKEN secret not set. Skipping sync."
-            exit 0
-          fi
-
           if [ -z "$HF_SPACE" ]; then
             echo "::warning::HF_SPACE secret not set. Skipping sync."
             exit 0
           fi
 
-          echo "Syncing to Hugging Face Space: $HF_SPACE"
+          echo "Syncing to: https://huggingface.co/spaces/$HF_SPACE"
 
-          huggingface-cli login --token "$HF_TOKEN"
+          huggingface-cli upload \
+            --repo-type space \
+            --include "*.py" "*.txt" "*.json" "*.md" "*.yml" \
+            --exclude ".git/*" "__pycache__/*" ".pytest_cache/*" ".venv/*" "*.pyc" \
+            "$HF_SPACE" . \
+            --commit-message "Sync from GitHub ${{ github.sha }}"
 
-          git remote add space "https://huggingface.co/spaces/$HF_SPACE" || true
-          git push space HEAD:main --force
-
-          echo "Sync complete: https://huggingface.co/spaces/$HF_SPACE"
+          echo "Done: https://huggingface.co/spaces/$HF_SPACE"
