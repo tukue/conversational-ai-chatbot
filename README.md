@@ -132,35 +132,39 @@ ruff check . --select E,F,W --ignore E501
 ### Workflows
 
 - **CI** (`.github/workflows/ci.yml`): lint + tests on every push/PR.
-- **Deploy** (`.github/workflows/deploy.yml`): validates + auto-deploys to HuggingFace on push to `main`.
+- **Deploy** (`.github/workflows/deploy.yml`): lint + test + deploy to HuggingFace via Trusted Publishers.
 
-### Deploy to HuggingFace (One-Time Setup)
+### Deploy to HuggingFace (Trusted Publishers — No Token)
 
-No tokens needed — uses HuggingFace's built-in GitHub integration.
+Uses OIDC authentication. GitHub proves identity to HuggingFace. No secrets stored.
 
-1. Go to https://huggingface.co/new-space
-   - **Name**: `customer-support-chatbot`
-   - **SDK**: Gradio
-   - **Python**: 3.10
-   - **License**: choose any
+#### 1. Create the Space
 
-2. Open your Space → **Settings** → **Connect repository**
+Go to https://huggingface.co/new-space
+- **Name**: `customer-support-chatbot`
+- **SDK**: Gradio
+- **Python**: 3.10
 
-3. Connect this GitHub repo:
-   - **Branch**: `main`
-   - **Directory**: `/` (root)
+#### 2. Add Trusted Publisher
 
-4. Done. Every push to `main` auto-deploys.
+Open your Space → **Settings** → **Trusted Publishers** → **Add**
 
-### Verify It Works
+| Field | Value |
+|---|---|
+| Provider | GitHub Actions |
+| Repository | `tukue/conversational-ai-chatbot` |
+| Branch | `main` |
+| Workflow | `deploy.yml` |
+
+#### 3. Done
+
+Push to `main` → workflow runs tests → deploys to your Space automatically.
 
 ```bash
-# Push a change
 git push origin main
-
-# Check your Space
-open https://huggingface.co/spaces/YOUR_USERNAME/customer-support-chatbot
 ```
+
+No tokens. No secrets. Just OIDC.
 
 ### Environment Variables
 
