@@ -17,6 +17,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
@@ -37,27 +41,23 @@ jobs:
       - name: Test
         run: python -m pytest tests/ -v --tb=short
 
-      - name: Validate HF config
+      - name: Install hf CLI
         run: |
-          sed -n '/^---$/,/^---$/p' README.md | sed '1d;$d' > /tmp/meta.yml
-          for f in title sdk app_file python_version; do
-            grep -q "^${f}:" /tmp/meta.yml || { echo "::error::Missing: $f"; exit 1; }
-          done
-          [ -f runtime.txt ] || { echo "::error::Missing runtime.txt"; exit 1; }
-          echo "HF config OK"
+          curl -LsSf https://hf.co/cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Deploy to HuggingFace
+      - name: Deploy to HuggingFace Spaces
+        env:
+          HF_OIDC_RESOURCE: spaces/tukue/customer-support-chatbot
         run: |
-          echo "All checks passed."
-          echo "HF Spaces auto-syncs from this GitHub repo."
-          echo "Your Space will rebuild automatically."
-          echo ""
-          echo "First time setup:"
-          echo "  1. Create Space: https://huggingface.co/new-space"
-          echo "     - SDK: Gradio"
-          echo "     - Python: 3.10"
-          echo "  2. Go to Space Settings > Connect repository"
-          echo "  3. Link this GitHub repo (main branch, root)"
-          echo "  4. Done. Every push to main auto-deploys."
-          echo ""
-          echo "Space: https://huggingface.co/spaces/tukue/customer-support-chatbot"
+          echo "Deploying to HuggingFace Spaces..."
+          hf upload \
+            tukue/customer-support-chatbot \
+            . . \
+            --repo-type space \
+            --include "*.py" "*.txt" "*.json" "*.yml" "*.yaml" \
+            --exclude ".git/*" "__pycache__/*" "tests/*" "*.pyc" \
+            --delete \
+            --commit-message "Deploy from GitHub $GITHUB_SHA"
+
+          echo "Done: https://huggingface.co/spaces/tukue/customer-support-chatbot"
