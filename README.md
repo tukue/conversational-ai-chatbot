@@ -129,28 +129,49 @@ ruff check . --select E,F,W --ignore E501
 
 ## CI/CD
 
-### GitHub Actions
+### Workflows
 
-- **CI** (`.github/workflows/ci.yml`): runs tests and linting on every push to `main`/`develop` and on PRs to `main`.
-- **Sync to HF** (`.github/workflows/sync-to-hf.yml`): auto-pushes `main` to your Hugging Face Space on every push.
+- **CI** (`.github/workflows/ci.yml`): lint + tests on every push/PR.
+- **Deploy** (`.github/workflows/deploy.yml`): validates + auto-deploys to HuggingFace on push to `main`.
 
-### Setup
+### Deploy to HuggingFace (One-Time Setup)
 
-1. Create two repository secrets in **Settings > Secrets and variables > Actions**:
+No tokens needed — uses HuggingFace's built-in GitHub integration.
 
-| Secret | Value |
-|---|---|
-| `HF_TOKEN` | Your Hugging Face access token (create at https://huggingface.co/settings/tokens) |
-| `HF_SPACE` | Your Space ID, e.g. `username/customer-support-ai-chatbot` |
+1. Go to https://huggingface.co/new-space
+   - **Name**: `customer-support-chatbot`
+   - **SDK**: Gradio
+   - **Python**: 3.10
+   - **License**: choose any
 
-2. Push to `main`. The CI workflow runs tests. The sync workflow pushes to your Space.
+2. Open your Space → **Settings** → **Connect repository**
 
-### Manual Sync
+3. Connect this GitHub repo:
+   - **Branch**: `main`
+   - **Directory**: `/` (root)
+
+4. Done. Every push to `main` auto-deploys.
+
+### Verify It Works
 
 ```bash
-git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
-git push space main
+# Push a change
+git push origin main
+
+# Check your Space
+open https://huggingface.co/spaces/YOUR_USERNAME/customer-support-chatbot
 ```
+
+### Environment Variables
+
+Set these in your Space Settings → Variables and secrets if needed:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable DialoGPT fallback |
+| `ENABLE_RAG` | `true` | Enable RAG retrieval |
+| `ENABLE_RATE_LIMITING` | `true` | Enable rate limiting |
+| `GRADIO_SHARE` | `false` | Gradio public tunnel |
 
 ## Configuration
 
