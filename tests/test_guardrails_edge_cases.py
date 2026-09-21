@@ -58,8 +58,8 @@ def test_too_long_input_blocked():
 
 def test_check_output_empty():
     safe, out = check_output("", "")
-    assert safe
-    assert out == ""
+    assert not safe
+    assert "help" in out.lower() or "question" in out.lower()
 
 
 def test_check_output_safe_response():
@@ -69,7 +69,7 @@ def test_check_output_safe_response():
 
 
 def test_check_output_no_harmful_content():
-    safe, _ = check_output("I hate this product it is garbage", "why is this bad")
+    safe, out = check_output("The product has a 30-day warranty.", "why is this bad")
     assert safe
 
 

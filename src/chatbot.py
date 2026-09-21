@@ -3,12 +3,22 @@ import logging
 import config
 from src.intent import classify_intent
 from src.templates import get_template
-from src.guardrails import check_input, check_output, is_on_topic
+from src.guardrails import (
+    check_input,
+    check_output,
+    is_on_topic,
+    check_rate_limit,
+    reset_rate_limit,
+    wrap_with_sandwich_defense,
+    sanitize_input,
+    validate_rag_response,
+)
 
 
 tokenizer, model = None, None
 _faq = None
 _products = None
+_rag = None
 logger = logging.getLogger(__name__)
 
 
@@ -26,6 +36,14 @@ def _get_products():
         from src.knowledge_base import ProductSearch
         _products = ProductSearch()
     return _products
+
+
+def _get_rag():
+    global _rag
+    if _rag is None:
+        from src.rag import RAGEngine
+        _rag = RAGEngine.get_instance()
+    return _rag
 
 
 def _history_pairs(history):
@@ -74,6 +92,39 @@ def _suggestion(intent):
     return suggestions.get(intent)
 
 
+def _rag_retrieve(message):
+    """Retrieve relevant context using the RAG engine."""
+    if not config.ENABLE_RAG:
+        return []
+
+    rag = _get_rag()
+    if config.RAG_RERANK:
+        return rag.search_with_rerank(message, top_k=config.RAG_TOP_K)
+    return rag.retrieve(message, top_k=config.RAG_TOP_K)
+
+
+def _build_rag_response(message, context_chunks):
+    """Build a response from RAG context chunks."""
+    if not context_chunks:
+        return None
+
+    for chunk in context_chunks:
+        if chunk.get("type") == "faq":
+            answer = chunk.get("content", "")
+            if "Answer:" in answer:
+                answer = answer.split("Answer:", 1)[1].strip()
+            return answer
+
+    for chunk in context_chunks:
+        if chunk.get("type") == "product":
+            return chunk.get("content", "")
+
+    if context_chunks:
+        return context_chunks[0].get("content", "")
+
+    return None
+
+
 def ensure_model_loaded():
     global tokenizer, model
     if tokenizer is None or model is None:
@@ -86,6 +137,10 @@ def build_conversation(message, history):
     for user_msg, bot_msg in _history_pairs(history)[-config.MAX_HISTORY_TURNS:]:
         conversation += user_msg + tokenizer.eos_token
         conversation += bot_msg + tokenizer.eos_token
+
+    if config.ENABLE_SANDWICH_DEFENSE:
+        message = wrap_with_sandwich_defense(message)
+
     conversation += message + tokenizer.eos_token
     return conversation
 
@@ -109,6 +164,16 @@ def respond_with_dialogpt(message, history):
 
 
 def chat(message, history):
+    message = sanitize_input(message)
+
+    if config.ENABLE_RATE_LIMITING:
+        allowed, retry_after = check_rate_limit(history)
+        if not allowed:
+            return (
+                f"You've sent too many messages. "
+                f"Please wait {retry_after} seconds and try again."
+            )
+
     safe, reason = check_input(message)
     if not safe:
         return reason
@@ -137,6 +202,22 @@ def chat(message, history):
         return response + ("\n\n" + tip if tip else "")
 
     if intent in {"return_request", "shipping_info", "damaged_item", "exchange", "lost_package"}:
+        context_chunks = _rag_retrieve(message)
+        rag_response = _build_rag_response(message, context_chunks)
+
+        if rag_response:
+            safe_out, rag_response = check_output(rag_response, message)
+            if not safe_out:
+                return get_template("escalate")
+
+            if config.ENABLE_RAG and context_chunks:
+                valid, rag_response = validate_rag_response(rag_response, context_chunks)
+                if not valid:
+                    return get_template("escalate")
+
+            tip = _suggestion(intent)
+            return rag_response + ("\n\n" + tip if tip else "")
+
         results = _get_faq().search(message)
         if results:
             safe_out, response = check_output(results[0]["answer"], message)
@@ -157,10 +238,28 @@ def chat(message, history):
         return check_output(response, message)[1]
 
     if intent == "payment_issue":
+        context_chunks = _rag_retrieve(message)
+        rag_response = _build_rag_response(message, context_chunks)
+
+        if rag_response:
+            safe_out, rag_response = check_output(rag_response, message)
+            if safe_out:
+                tip = _suggestion(intent)
+                return rag_response + ("\n\n" + tip if tip else "")
+
         response = get_template("payment_issue")
         return check_output(response, message)[1]
 
     if intent == "product_inquiry":
+        context_chunks = _rag_retrieve(message)
+        rag_response = _build_rag_response(message, context_chunks)
+
+        if rag_response:
+            safe_out, rag_response = check_output(rag_response, message)
+            if safe_out:
+                tip = _suggestion(intent)
+                return rag_response + ("\n\n" + tip if tip else "")
+
         matches = _get_products().search(message)
         if matches:
             p = matches[0]
@@ -176,6 +275,8 @@ def chat(message, history):
         return check_output(response, message)[1]
 
     if config.ENABLE_GENERATIVE_FALLBACK:
+        if config.ENABLE_SANDWICH_DEFENSE:
+            message = wrap_with_sandwich_defense(message)
         response = respond_with_dialogpt(message, history)
     else:
         response = get_template("general")
