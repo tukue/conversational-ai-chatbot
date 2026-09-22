@@ -92,8 +92,6 @@ def _normalize_unicode(text):
 
 def _detect_encoding_attacks(text):
     """Detect attempts to hide malicious content via encoding."""
-    text_lower = text.lower()
-
     # Base64 encoded injection patterns
     import base64
     b64_pattern = re.findall(r"[A-Za-z0-9+/]{20,}={0,2}", text)
@@ -350,7 +348,7 @@ def _get_session_key(history):
     if not history:
         return "anonymous"
     history_str = str(history)[:200]
-    return hashlib.md5(history_str.encode()).hexdigest()[:16]
+    return hashlib.sha256(history_str.encode()).hexdigest()[:16]
 
 
 def check_rate_limit(history):

@@ -2,8 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-import time
-import re
+import hashlib
 from src.guardrails import (
     check_input,
     check_output,
@@ -17,6 +16,7 @@ from src.guardrails import (
     _detect_encoding_attacks,
     _strip_control_chars,
     _calculate_injection_score,
+    _get_session_key,
     INJECTION_SCORE_THRESHOLD,
 )
 
@@ -292,6 +292,11 @@ class TestRateLimiting:
             check_rate_limit(s1)
         allowed, _ = check_rate_limit(s2)
         assert allowed
+
+    def test_session_key_uses_sha256(self):
+        history = ["session_key_test"]
+        expected = hashlib.sha256(str(history).encode()).hexdigest()[:16]
+        assert _get_session_key(history) == expected
 
 
 # ---------------------------------------------------------------------------

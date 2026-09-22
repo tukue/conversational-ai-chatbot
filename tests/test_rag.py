@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
+import src.rag as rag_module
 from src.rag import (
     RAGEngine,
     VectorStore,
@@ -12,6 +13,7 @@ from src.rag import (
     _cosine_similarity,
     _keyword_score,
     _reciprocal_fusion_rank,
+    _tokenize,
 )
 
 
@@ -64,6 +66,12 @@ class TestKeywordScore:
     def test_empty_doc(self):
         assert _keyword_score(["hello"], []) == 0.0
 
+    def test_tokenize_removes_common_words(self):
+        assert _tokenize("Do you sell wireless headphones?") == [
+            "sell",
+            "wireless",
+            "headphones",
+        ]
 
 class TestReciprocalFusionRank:
     def test_single_list(self):
@@ -144,6 +152,29 @@ class TestBuildKnowledgeChunks:
         for chunk in chunks:
             assert len(chunk.get("content", "")) > 0
 
+    def test_skips_malformed_entries(self, monkeypatch):
+        monkeypatch.setattr(
+            rag_module,
+            "_load_json",
+            lambda filename: (
+                [{"id": "faq-1", "question": "Valid?", "answer": "Yes."}, {"id": "bad"}]
+                if filename == "faq.json"
+                else [
+                    {
+                        "id": "product-1",
+                        "name": "Valid product",
+                        "category": "test",
+                        "price": 1.0,
+                        "description": "A valid product",
+                    },
+                    {"id": "bad-product", "price": "free"},
+                ]
+            ),
+        )
+
+        chunks = build_knowledge_chunks()
+        assert {chunk["id"] for chunk in chunks} == {"faq-1", "product-1"}
+
 
 # ---------------------------------------------------------------------------
 # VectorStore tests
@@ -216,6 +247,7 @@ class TestRAGEngine:
         rag = RAGEngine.get_instance()
         results = rag.search_with_rerank("shipping time")
         assert isinstance(results, list)
+        assert rag._initialized
 
 
 # ---------------------------------------------------------------------------

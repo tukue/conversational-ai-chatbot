@@ -7,6 +7,11 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+STOP_WORDS = {
+    "a", "an", "and", "are", "can", "could", "do", "does", "for", "have",
+    "how", "i", "is", "it", "me", "my", "of", "please", "the", "to", "what",
+    "with", "would", "you", "your",
+}
 EMBEDDING_MODEL = os.getenv(
     "RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
 )
@@ -24,7 +29,11 @@ def _load_json(filename):
 
 
 def _tokenize(text):
-    return re.findall(r"[a-z0-9]+", text.lower())
+    return [
+        token
+        for token in re.findall(r"[a-z0-9]+", text.lower())
+        if token not in STOP_WORDS
+    ]
 
 
 def _cosine_similarity(a, b):
@@ -43,7 +52,8 @@ def _keyword_score(query_tokens, doc_tokens):
     query_set = set(query_tokens)
     doc_set = set(doc_tokens)
     intersection = query_set & doc_set
-    return len(intersection) / max(len(query_set), len(doc_set))
+    denominator = max(len(query_set), len(doc_set))
+    return len(intersection) / denominator if denominator else 0.0
 
 
 def _reciprocal_fusion_rank(scores, k=60):
@@ -205,6 +215,9 @@ def build_knowledge_chunks():
     chunks = []
 
     for faq in faqs:
+        if not isinstance(faq, dict) or not {"id", "question", "answer"} <= faq.keys():
+            logger.warning("Skipping malformed FAQ entry")
+            continue
         faq_chunks = chunk_document(
             {
                 "content": f"Question: {faq['question']}\nAnswer: {faq['answer']}",
@@ -217,6 +230,17 @@ def build_knowledge_chunks():
         chunks.extend(faq_chunks)
 
     for product in products:
+        required_fields = {"id", "name", "category", "price", "description"}
+        if not isinstance(product, dict) or not required_fields <= product.keys():
+            logger.warning("Skipping malformed product entry")
+            continue
+        if not isinstance(product["price"], (int, float)):
+            logger.warning("Skipping product with a non-numeric price: %s", product["id"])
+            continue
+        variants = product.get("variants", [])
+        if not isinstance(variants, list) or not all(isinstance(v, str) for v in variants):
+            logger.warning("Skipping product with invalid variants: %s", product["id"])
+            continue
         product_chunks = chunk_document(
             {
                 "content": (
@@ -224,8 +248,8 @@ def build_knowledge_chunks():
                     f"Category: {product['category']}\n"
                     f"Price: ${product['price']:.2f}\n"
                     f"Description: {product['description']}\n"
-                    f"In Stock: {'Yes' if product['in_stock'] else 'No'}\n"
-                    f"Variants: {', '.join(product.get('variants', []))}"
+                f"In Stock: {'Yes' if product.get('in_stock', True) else 'No'}\n"
+                f"Variants: {', '.join(variants)}"
                 ),
                 "id": product["id"],
                 "name": product["name"],
@@ -278,7 +302,7 @@ class RAGEngine:
     def _fallback_keyword_search(self, query):
         """Fallback to the original keyword search if RAG returns nothing."""
         try:
-            from src.knowledge_base import FAQSearch, ProductSearch
+            from src.knowledge_base import FAQSearch
             faq = FAQSearch()
             faq_results = faq.search(query, top_k=3)
             chunks = []
@@ -310,6 +334,9 @@ class RAGEngine:
 
     def search_with_rerank(self, query, top_k=TOP_K_RESULTS):
         """Search with keyword reranking for improved precision."""
+        if not self._initialized:
+            self.initialize()
+
         semantic_results = self._store.search(query, top_k=top_k * 2)
         keyword_results = self._store._keyword_search(query, top_k=top_k * 2)
 
