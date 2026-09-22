@@ -129,28 +129,48 @@ ruff check . --select E,F,W --ignore E501
 
 ## CI/CD
 
-### GitHub Actions
+### Workflows
 
-- **CI** (`.github/workflows/ci.yml`): runs tests and linting on every push to `main`/`develop` and on PRs to `main`.
-- **Sync to HF** (`.github/workflows/sync-to-hf.yml`): auto-pushes `main` to your Hugging Face Space on every push.
+- **CI** (`.github/workflows/ci.yml`): lint + tests on every push/PR.
+- **Deploy** (`.github/workflows/deploy.yml`): lint, test, and deploy to Hugging Face via a Trusted Publisher.
 
-### Setup
+### Deploy to Hugging Face (Trusted Publisher — no token)
 
-1. Create two repository secrets in **Settings > Secrets and variables > Actions**:
+Uses OIDC authentication. GitHub proves identity to HuggingFace. No secrets stored.
 
-| Secret | Value |
+#### Add the Trusted Publisher
+
+Open your Space → **Settings** → **Trusted Publishers** → **Add**
+
+| Field | Value |
 |---|---|
-| `HF_TOKEN` | Your Hugging Face access token (create at https://huggingface.co/settings/tokens) |
-| `HF_SPACE` | Your Space ID, e.g. `username/customer-support-ai-chatbot` |
+| Provider | GitHub Actions |
+| Repository | `tukue/conversational-ai-chatbot` |
+| Branch | `main` |
+| Workflow | `deploy.yml` |
 
-2. Push to `main`. The CI workflow runs tests. The sync workflow pushes to your Space.
+The target Space is [`Tukue/customer-support-ai`](https://huggingface.co/spaces/Tukue/customer-support-ai).
 
-### Manual Sync
+#### Deploy
+
+Push to `main` → workflow runs tests → deploys to your Space automatically.
 
 ```bash
-git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
-git push space main
+git push origin main
 ```
+
+No tokens. No secrets. Just OIDC.
+
+### Environment Variables
+
+Set these in your Space Settings → Variables and secrets if needed:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable DialoGPT fallback |
+| `ENABLE_RAG` | `true` | Enable RAG retrieval |
+| `ENABLE_RATE_LIMITING` | `true` | Enable rate limiting |
+| `GRADIO_SHARE` | `false` | Gradio public tunnel |
 
 ## Configuration
 
@@ -163,34 +183,11 @@ git push space main
 
 ## Deploy to Hugging Face Spaces
 
-### Option A — Auto-sync via GitHub Actions (recommended)
+### Option A — Auto-deploy with the Trusted Publisher
 
-This pushes code to your Space automatically on every commit to `main`.
+This deploys to [`Tukue/customer-support-ai`](https://huggingface.co/spaces/Tukue/customer-support-ai) on every push to `main`. Configure the Trusted Publisher above; no GitHub secret or long-lived Hugging Face token is required.
 
-**1. Create the Space**
-
-Go to https://huggingface.co/spaces and click **Create new Space**.
-
-| Field | Value |
-|---|---|
-| Space name | `conversational-ai-chatbot` (or your choice) |
-| License | Choose any |
-| SDK | **Gradio** |
-| Visibility | Public (for portfolio) |
-
-Click **Create Space**. Note the Space ID shown in the URL: `https://huggingface.co/spaces/YOUR_USERNAME/SPACE_NAME`.
-
-**2. Add the GitHub secret**
-
-Go to your GitHub repo **Settings > Secrets and variables > Actions > New repository secret**:
-
-| Name | Value |
-|---|---|
-| `HF_SPACE` | `YOUR_USERNAME/SPACE_NAME` (e.g. `tukue/conversational-ai-chatbot`) |
-
-No `HF_TOKEN` is needed. The sync uses `huggingface-cli upload` which works with the Space's public endpoint.
-
-**3. Push to `main`**
+Push to `main`:
 
 ```bash
 git push origin main
@@ -260,7 +257,7 @@ huggingface-cli upload \
 | App loads but chat doesn't work | Ensure `app_file: app.py` is in the README frontmatter (it is by default). |
 | Slow first response | Normal. DialoGPT downloads on first use (~500MB). Subsequent loads are cached. |
 | Out of memory on free tier | Set `MODEL_NAME=microsoft/DialoGPT-small` in Space variables, or remove DialoGPT entirely. |
-| Sync workflow skipped | Check that `HF_SPACE` secret is set correctly in GitHub repo settings. |
+| Deployment authentication fails | Confirm the Space Trusted Publisher matches repository `tukue/conversational-ai-chatbot`, branch `main`, and workflow `deploy.yml`. |
 | Port errors | HF Spaces handles ports automatically. Do not set `SERVER_PORT` manually. |
 
 ### Deployment Notes

@@ -3,6 +3,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.templates import get_template
+from src import chatbot
 from src.chatbot import chat
 
 
@@ -24,6 +25,28 @@ def test_chat_off_topic_redirected():
 def test_chat_greeting():
     response = chat("Hello", [])
     assert "Hello" in response or "Hi" in response
+
+
+def test_generative_fallback_wraps_message_once(monkeypatch):
+    captured = []
+    monkeypatch.setattr(chatbot.config, "ENABLE_RAG", False)
+    monkeypatch.setattr(chatbot.config, "ENABLE_GENERATIVE_FALLBACK", True)
+    monkeypatch.setattr(chatbot.config, "ENABLE_SANDWICH_DEFENSE", True)
+    monkeypatch.setattr(chatbot.config, "ENABLE_RATE_LIMITING", False)
+    monkeypatch.setattr(chatbot, "sanitize_input", lambda message: message)
+    monkeypatch.setattr(chatbot, "check_input", lambda message: (True, ""))
+    monkeypatch.setattr(chatbot, "is_on_topic", lambda message: True)
+    monkeypatch.setattr(chatbot, "classify_intent", lambda message: "general")
+    monkeypatch.setattr(chatbot, "check_output", lambda response, message: (True, response))
+    monkeypatch.setattr(
+        chatbot,
+        "respond_with_dialogpt",
+        lambda message, history: captured.append(message) or "Safe response",
+    )
+
+    chatbot.chat("Need support", [])
+
+    assert captured == ["Need support"]
 
 
 def test_chat_return_policy():

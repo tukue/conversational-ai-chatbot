@@ -8,7 +8,6 @@ from src.guardrails import (
     check_output,
     is_on_topic,
     check_rate_limit,
-    reset_rate_limit,
     wrap_with_sandwich_defense,
     sanitize_input,
     validate_rag_response,
@@ -117,7 +116,12 @@ def _build_rag_response(message, context_chunks):
 
     for chunk in context_chunks:
         if chunk.get("type") == "product":
-            return chunk.get("content", "")
+            product_id = chunk.get("id", "")
+            return (
+                f"{chunk.get('content', '')}\nProduct ID: {product_id}"
+                if product_id
+                else chunk.get("content", "")
+            )
 
     if context_chunks:
         return context_chunks[0].get("content", "")
@@ -203,6 +207,16 @@ def chat(message, history):
 
     if intent in {"return_request", "shipping_info", "damaged_item", "exchange", "lost_package"}:
         context_chunks = _rag_retrieve(message)
+        expected_source = {
+            "damaged_item": "damaged_item",
+            "exchange": "size_exchange",
+            "lost_package": "lost_package",
+        }.get(intent)
+        if expected_source:
+            matching_chunks = [
+                chunk for chunk in context_chunks if chunk.get("id") == expected_source
+            ]
+            context_chunks = matching_chunks or context_chunks
         rag_response = _build_rag_response(message, context_chunks)
 
         if rag_response:
@@ -238,15 +252,6 @@ def chat(message, history):
         return check_output(response, message)[1]
 
     if intent == "payment_issue":
-        context_chunks = _rag_retrieve(message)
-        rag_response = _build_rag_response(message, context_chunks)
-
-        if rag_response:
-            safe_out, rag_response = check_output(rag_response, message)
-            if safe_out:
-                tip = _suggestion(intent)
-                return rag_response + ("\n\n" + tip if tip else "")
-
         response = get_template("payment_issue")
         return check_output(response, message)[1]
 
@@ -275,8 +280,6 @@ def chat(message, history):
         return check_output(response, message)[1]
 
     if config.ENABLE_GENERATIVE_FALLBACK:
-        if config.ENABLE_SANDWICH_DEFENSE:
-            message = wrap_with_sandwich_defense(message)
         response = respond_with_dialogpt(message, history)
     else:
         response = get_template("general")

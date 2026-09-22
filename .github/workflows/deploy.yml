@@ -1,0 +1,62 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "tests/**"
+      - ".github/**"
+      - "**.md"
+      - "requirements-dev.txt"
+  workflow_dispatch:
+
+concurrency:
+  group: huggingface-space-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Lint
+        run: ruff check . --select E,F,W --ignore E501
+
+      - name: Test
+        run: python -m pytest tests/ -v --tb=short
+
+      - name: Install hf CLI
+        run: |
+          curl -LsSf https://hf.co/cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Deploy to HuggingFace Spaces
+        env:
+          HF_OIDC_RESOURCE: spaces/Tukue/customer-support-ai
+        run: |
+          echo "Deploying to Hugging Face Space..."
+          hf upload \
+            Tukue/customer-support-ai \
+            . . \
+            --repo-type space \
+            --exclude ".git/*" ".github/*" "__pycache__/*" "tests/*" "*.pyc" "requirements-dev.txt" \
+            --delete \
+            --commit-message "Deploy from GitHub $GITHUB_SHA"
+
+          echo "Done: https://huggingface.co/spaces/Tukue/customer-support-ai"
