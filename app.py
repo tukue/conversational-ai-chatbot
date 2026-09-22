@@ -8,9 +8,12 @@ from src.chatbot import chat
 CUSTOM_CSS = """
 /* ── Global ── */
 :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-light: #dbeafe;
+    --primary: #dc2626;
+    --primary-dark: #b91c1c;
+    --primary-light: #fee2e2;
+    --accent: #16a34a;
+    --accent-dark: #15803d;
+    --accent-light: #dcfce7;
     --bg: #f8fafc;
     --surface: #ffffff;
     --text: #1e293b;
@@ -41,7 +44,7 @@ body {
 
 /* ── Header ── */
 .app-header {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    background: linear-gradient(135deg, var(--primary), var(--accent));
     padding: 1.75rem 2rem;
     text-align: center;
     border-bottom: none;
@@ -114,7 +117,7 @@ body {
 }
 .gr-textbox:focus-within {
     border-color: var(--primary) !important;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.1) !important;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.12) !important;
 }
 .gr-textbox textarea {
     font-size: 0.9rem !important;
@@ -123,7 +126,7 @@ body {
 
 /* Submit button */
 button.gr-button-primary {
-    background: var(--primary) !important;
+    background: var(--accent) !important;
     border: none !important;
     border-radius: var(--radius-sm) !important;
     color: #fff !important;
@@ -133,7 +136,7 @@ button.gr-button-primary {
     transition: background 0.2s, transform 0.1s !important;
 }
 button.gr-button-primary:hover {
-    background: var(--primary-dark) !important;
+    background: var(--accent-dark) !important;
     transform: translateY(-1px) !important;
 }
 
@@ -162,9 +165,9 @@ button.gr-button-primary:hover {
     cursor: pointer !important;
 }
 .gr-examples button:hover {
-    border-color: var(--primary) !important;
-    background: var(--primary-light) !important;
-    color: var(--primary) !important;
+    border-color: var(--accent) !important;
+    background: var(--accent-light) !important;
+    color: var(--accent-dark) !important;
 }
 
 /* ── Footer ── */
