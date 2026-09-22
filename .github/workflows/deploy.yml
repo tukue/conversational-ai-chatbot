@@ -60,7 +60,6 @@ jobs:
             --exclude "tests/*" \
             --exclude "*.pyc" \
             --exclude "requirements-dev.txt" \
-            --delete \
             --commit-message "Deploy from GitHub $GITHUB_SHA"
 
           echo "Done: https://huggingface.co/spaces/Tukue/customer-support-ai"
