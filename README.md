@@ -29,9 +29,11 @@ This project is designed as an AI portfolio project: it shows practical product 
 
 ## Live Demo
 
+Try the deployed application: **[Customer Support AI on Hugging Face Spaces](https://huggingface.co/spaces/Tukue/customer-support-ai)**.
+
 There are two ways to make the chatbot public:
 
-- **Permanent portfolio demo:** deploy this repository to Hugging Face Spaces with the Gradio SDK.
+- **Permanent portfolio demo:** [Customer Support AI on Hugging Face Spaces](https://huggingface.co/spaces/Tukue/customer-support-ai).
 - **Temporary public demo:** run the app locally with Gradio `share=True`, which creates a temporary `https://*.gradio.live` URL.
 
 For recruiters and portfolio links, Hugging Face Spaces is the recommended option because the URL stays available after your local computer shuts down.
@@ -56,6 +58,12 @@ For recruiters and portfolio links, Hugging Face Spaces is the recommended optio
 | Product thinking | Common customer support workflows: returns, shipping, orders, payments, products, complaints |
 | Deployment basics | Dockerfile and environment-driven configuration |
 | CI/CD | GitHub Actions for tests, linting, and auto-sync to Hugging Face Spaces |
+
+## AI Agent Feature
+
+The chatbot uses an agent-style routing flow rather than sending every message to a generative model. It validates and sanitizes the request, identifies the support intent, retrieves grounded FAQ or product context when needed, and returns a deterministic support response whenever possible. A DialoGPT fallback is optional and runs only for otherwise-unhandled, on-topic requests.
+
+This keeps routine answers fast, traceable to the local knowledge base, and protected by input/output guardrails. See the [AI agent architecture](docs/AI_AGENT_ARCHITECTURE.md) for the component and request-flow diagram.
 
 ## Architecture
 
@@ -94,7 +102,9 @@ Gradio chat response
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml          # CI: tests + lint on push/PR
-│       └── sync-to-hf.yml  # Auto-sync to Hugging Face Spaces
+│       └── deploy.yml      # Auto-sync to Hugging Face Spaces
+├── docs/
+│   └── AI_AGENT_ARCHITECTURE.md  # Agent and RAG architecture diagram
 ├── data/
 │   ├── faq.json            # FAQ knowledge base
 │   └── products.json       # Demo product catalog
