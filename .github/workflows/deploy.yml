@@ -22,7 +22,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -55,7 +55,12 @@ jobs:
             Tukue/customer-support-ai \
             . . \
             --repo-type space \
-            --exclude ".git/*" ".github/*" "__pycache__/*" "tests/*" "*.pyc" "requirements-dev.txt" \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "__pycache__/*" \
+            --exclude "tests/*" \
+            --exclude "*.pyc" \
+            --exclude "requirements-dev.txt" \
             --delete \
             --commit-message "Deploy from GitHub $GITHUB_SHA"
 
