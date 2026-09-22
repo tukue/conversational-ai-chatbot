@@ -1,6 +1,7 @@
 import os
 
 import gradio as gr
+import spaces
 import config
 from src.chatbot import chat
 
@@ -243,6 +244,7 @@ FOOTER_HTML = """
 """
 
 
+@spaces.GPU
 def respond(message, history):
     return chat(message, history)
 
