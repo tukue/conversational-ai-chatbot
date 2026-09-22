@@ -16,7 +16,7 @@ tags:
   - transformers
   - customer-support
   - portfolio
-short_description: E-commerce support chatbot with intent routing, FAQs, product search, guardrails, and a Transformer fallback.
+short_description: E-commerce support chatbot with RAG and guardrails.
 ---
 
 # Customer Support AI Chatbot
