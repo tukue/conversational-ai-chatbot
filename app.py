@@ -1,3 +1,5 @@
+import os
+
 import gradio as gr
 import config
 from src.chatbot import chat
@@ -264,13 +266,16 @@ def main():
 
         gr.HTML(FOOTER_HTML)
 
-    demo.launch(
-        server_name=config.SERVER_NAME,
-        server_port=config.SERVER_PORT,
-        share=config.SHARE,
-        debug=config.DEBUG,
-        inline=False,
-    )
+    if os.getenv("SPACE_ID"):
+        demo.launch()
+    else:
+        demo.launch(
+            server_name=config.SERVER_NAME,
+            server_port=config.SERVER_PORT,
+            share=config.SHARE,
+            debug=config.DEBUG,
+            inline=False,
+        )
 
 
 if __name__ == "__main__":
