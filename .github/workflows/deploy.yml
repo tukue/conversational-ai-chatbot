@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: huggingface-space-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
