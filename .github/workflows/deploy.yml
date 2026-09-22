@@ -1,4 +1,4 @@
-name: Deploy to HuggingFace
+name: Deploy to Hugging Face Space
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy
+  group: huggingface-space-deploy
   cancel-in-progress: true
 
 jobs:
@@ -48,16 +48,15 @@ jobs:
 
       - name: Deploy to HuggingFace Spaces
         env:
-          HF_OIDC_RESOURCE: spaces/tukue/customer-support-chatbot
+          HF_OIDC_RESOURCE: spaces/Tukue/customer-support-ai
         run: |
-          echo "Deploying to HuggingFace Spaces..."
+          echo "Deploying to Hugging Face Space..."
           hf upload \
-            tukue/customer-support-chatbot \
+            Tukue/customer-support-ai \
             . . \
             --repo-type space \
-            --include "*.py" "*.txt" "*.json" "*.yml" "*.yaml" \
-            --exclude ".git/*" "__pycache__/*" "tests/*" "*.pyc" \
+            --exclude ".git/*" ".github/*" "__pycache__/*" "tests/*" "*.pyc" "requirements-dev.txt" \
             --delete \
             --commit-message "Deploy from GitHub $GITHUB_SHA"
 
-          echo "Done: https://huggingface.co/spaces/tukue/customer-support-chatbot"
+          echo "Done: https://huggingface.co/spaces/Tukue/customer-support-ai"
