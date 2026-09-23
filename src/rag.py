@@ -15,9 +15,30 @@ STOP_WORDS = {
 EMBEDDING_MODEL = os.getenv(
     "RAG_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
 )
-TOP_K_RESULTS = int(os.getenv("RAG_TOP_K", "5"))
-SIMILARITY_THRESHOLD = float(os.getenv("RAG_SIMILARITY_THRESHOLD", "0.3"))
-RRF_K = int(os.getenv("RAG_RRF_K", "60"))
+
+
+def _get_positive_int_env(name, default):
+    """Read a positive integer setting without preventing application startup."""
+    try:
+        value = int(os.getenv(name, str(default)))
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        logger.warning("Invalid %s value; using default %d", name, default)
+        return default
+
+
+def _get_float_env(name, default):
+    """Read a float setting without preventing application startup."""
+    try:
+        return float(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        logger.warning("Invalid %s value; using default %s", name, default)
+        return default
+
+
+TOP_K_RESULTS = _get_positive_int_env("RAG_TOP_K", 5)
+SIMILARITY_THRESHOLD = _get_float_env("RAG_SIMILARITY_THRESHOLD", 0.3)
+RRF_K = _get_positive_int_env("RAG_RRF_K", 60)
 
 
 def _load_json(filename):
@@ -29,11 +50,26 @@ def _load_json(filename):
 
 
 def _tokenize(text):
+    if not isinstance(text, str):
+        return []
     return [
         token
         for token in re.findall(r"[a-z0-9]+", text.lower())
         if token not in STOP_WORDS
     ]
+
+
+def _normalise_query(query):
+    """Return a safe query string, preserving normal user input unchanged."""
+    return query.strip() if isinstance(query, str) else ""
+
+
+def _safe_top_k(top_k):
+    """Convert a public search limit to a safe non-negative integer."""
+    try:
+        return max(0, int(top_k))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _cosine_similarity(a, b):
@@ -101,10 +137,17 @@ class EmbeddingEngine:
             return None
         if isinstance(texts, str):
             texts = [texts]
-        embeddings = self._model.encode(
-            texts, show_progress_bar=False, normalize_embeddings=True
-        )
-        return embeddings
+        try:
+            return self._model.encode(
+                texts, show_progress_bar=False, normalize_embeddings=True
+            )
+        except Exception as exc:
+            logger.warning(
+                "Embedding inference failed: %s. Falling back to keyword retrieval.",
+                exc.__class__.__name__,
+            )
+            self._use_fallback = True
+            return None
 
 
 class VectorStore:
@@ -116,7 +159,21 @@ class VectorStore:
         self._embedding_engine = EmbeddingEngine()
 
     def add_chunks(self, chunks):
-        self._chunks.extend(chunks)
+        if not chunks:
+            return
+
+        valid_chunks = []
+        for chunk in chunks:
+            if not isinstance(chunk, dict):
+                logger.warning("Skipping non-dictionary RAG chunk")
+                continue
+            content = chunk.get("content")
+            if not isinstance(content, str) or not content.strip():
+                logger.warning("Skipping RAG chunk with empty or invalid content")
+                continue
+            valid_chunks.append(dict(chunk))
+
+        self._chunks.extend(valid_chunks)
         self._embeddings = None
 
     def build_index(self):
@@ -128,7 +185,9 @@ class VectorStore:
             self._embeddings = np.array(embeddings, dtype=np.float32)
 
     def search(self, query, top_k=5):
-        if not self._chunks:
+        query = _normalise_query(query)
+        top_k = _safe_top_k(top_k)
+        if not query or not top_k or not self._chunks:
             return []
 
         if self._embeddings is None:
@@ -139,6 +198,9 @@ class VectorStore:
         return self._keyword_search(query, top_k)
 
     def _semantic_search(self, query, top_k):
+        query = _normalise_query(query)
+        if not query or not top_k:
+            return []
         query_embedding = self._embedding_engine.encode(query)
         if query_embedding is None:
             return self._keyword_search(query, top_k)
@@ -162,7 +224,10 @@ class VectorStore:
         return results
 
     def _keyword_search(self, query, top_k):
-        query_tokens = _tokenize(query)
+        query_tokens = _tokenize(_normalise_query(query))
+        top_k = _safe_top_k(top_k)
+        if not query_tokens or not top_k:
+            return []
         scored = []
         for i, chunk in enumerate(self._chunks):
             doc_tokens = _tokenize(chunk["content"])
@@ -195,6 +260,18 @@ def chunk_document(doc, chunk_size=200, overlap=50):
         }
     else:
         return []
+
+    if not isinstance(content, str) or not content.strip():
+        return []
+
+    try:
+        chunk_size = int(chunk_size)
+        overlap = int(overlap)
+    except (TypeError, ValueError):
+        return []
+    if chunk_size <= 0 or overlap < 0:
+        return []
+    overlap = min(overlap, chunk_size - 1)
 
     words = content.split()
     if len(words) <= chunk_size:
@@ -292,6 +369,11 @@ class RAGEngine:
         if not self._initialized:
             self.initialize()
 
+        query = _normalise_query(query)
+        top_k = _safe_top_k(top_k)
+        if not query or not top_k:
+            return []
+
         results = self._store.search(query, top_k=top_k)
 
         if not results:
@@ -336,6 +418,11 @@ class RAGEngine:
         """Search with keyword reranking for improved precision."""
         if not self._initialized:
             self.initialize()
+
+        query = _normalise_query(query)
+        top_k = _safe_top_k(top_k)
+        if not query or not top_k:
+            return []
 
         semantic_results = self._store.search(query, top_k=top_k * 2)
         keyword_results = self._store._keyword_search(query, top_k=top_k * 2)
