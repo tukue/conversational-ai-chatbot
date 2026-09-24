@@ -13,7 +13,9 @@ local knowledge sources, optional generation, and safe fallback responses.
    failure path.
 4. Implement the smallest compatible change. Keep public module APIs and
    fallback messages stable unless the change explicitly requires otherwise.
-5. Run linting, the complete suite, and the 90% branch-coverage gate locally.
+5. Run linting and the complete suite. For a change that affects AI-agent
+   behavior (routing, RAG, guardrails, or generation), also run coverage and
+   demonstrate at least 90% coverage for the affected scope.
 6. Review the diff for sensitive data, unsafe logs, new dependencies, and
    accidental changes to knowledge data or deployment configuration.
 7. Open a PR with the behavior change, safety impact, evaluation evidence, and
