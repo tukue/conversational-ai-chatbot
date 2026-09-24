@@ -12,6 +12,8 @@ from src.guardrails import (
     wrap_with_sandwich_defense,
     sanitize_input,
     validate_rag_response,
+    get_security_metrics,
+    reset_security_metrics,
     _normalize_unicode,
     _detect_encoding_attacks,
     _strip_control_chars,
@@ -327,6 +329,9 @@ class TestSandwichDefense:
 # ---------------------------------------------------------------------------
 
 class TestEnhancedOutputFiltering:
+    def setup_method(self):
+        reset_security_metrics()
+
     def test_toxic_output_blocked(self):
         safe, _ = check_output("You are a stupid idiot", "")
         assert not safe
@@ -363,6 +368,41 @@ class TestEnhancedOutputFiltering:
     def test_business_policy_block(self):
         safe, _ = check_output("I will refund more than what you paid", "")
         assert not safe
+
+    def test_non_string_and_oversized_outputs_are_blocked(self, monkeypatch):
+        safe, _ = check_output(None, "")
+        assert not safe
+
+        monkeypatch.setattr("src.guardrails.MAX_OUTPUT_CHARS", 10)
+        safe, _ = check_output("This response is longer than ten characters", "")
+        assert not safe
+
+    def test_luhn_valid_amex_card_is_blocked(self):
+        safe, _ = check_output("Use card 3782 822463 10005 for payment", "")
+        assert not safe
+
+    def test_secret_and_dangerous_markup_are_blocked(self):
+        safe, _ = check_output("Token: ghp_abcdefghijklmnopqrstuvwxyz123456", "")
+        assert not safe
+
+        safe, _ = check_output("<script>alert('xss')</script>", "")
+        assert not safe
+
+        safe, _ = check_output("[Open](javascript:alert(1))", "")
+        assert not safe
+
+    def test_unicode_obfuscated_internal_marker_is_blocked(self):
+        safe, _ = check_output("My sуstem prompt is private", "")
+        assert not safe
+
+    def test_output_metrics_record_categories_without_response_text(self):
+        check_output("Your SSN is 123-45-6789", "")
+        check_output("Your order has shipped", "where is my order")
+
+        metrics = get_security_metrics()
+        assert metrics["output_blocked_pii"] == 1
+        assert metrics["output_allowed"] == 1
+        assert "SSN" not in str(metrics)
 
 
 # ---------------------------------------------------------------------------
