@@ -127,6 +127,15 @@ class TestChunkDocument:
         assert len(chunks) == 1
         assert chunks[0]["content"] == "Just a plain string document"
 
+    def test_invalid_content_and_parameters_return_no_chunks(self):
+        assert chunk_document({"content": None}) == []
+        assert chunk_document("valid", chunk_size=0) == []
+        assert chunk_document("valid", overlap=-1) == []
+
+    def test_overlap_is_clamped_to_keep_chunking_progressing(self):
+        chunks = chunk_document("word " * 20, chunk_size=5, overlap=50)
+        assert len(chunks) > 1
+
 
 # ---------------------------------------------------------------------------
 # Knowledge chunks builder tests
@@ -206,6 +215,14 @@ class TestVectorStore:
         results = store.search("anything")
         assert results == []
 
+    def test_invalid_chunks_and_queries_are_ignored_safely(self):
+        store = VectorStore()
+        store.add_chunks([None, {"content": ""}, {"content": "return policy", "id": "1"}])
+        assert len(store._chunks) == 1
+        assert store.search(None) == []
+        assert store.search("return", top_k=0) == []
+        assert store._keyword_search("return", top_k="bad") == []
+
 
 # ---------------------------------------------------------------------------
 # RAGEngine integration tests
@@ -229,6 +246,11 @@ class TestRAGEngine:
         rag = RAGEngine.get_instance()
         results = rag.retrieve("return policy")
         assert isinstance(results, list)
+
+    def test_retrieve_rejects_invalid_queries_without_fallback(self):
+        rag = RAGEngine.get_instance()
+        assert rag.retrieve(None) == []
+        assert rag.search_with_rerank("   ") == []
 
     def test_format_context(self):
         rag = RAGEngine.get_instance()

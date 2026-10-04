@@ -3,12 +3,28 @@ import re
 import unicodedata
 import hashlib
 import time
+import logging
+import threading
 from collections import defaultdict
 
-MAX_MESSAGE_CHARS = int(os.getenv("MAX_MESSAGE_CHARS", "1000"))
-RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))
-RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "20"))
-INJECTION_SCORE_THRESHOLD = int(os.getenv("INJECTION_SCORE_THRESHOLD", "2"))
+logger = logging.getLogger(__name__)
+
+
+def _get_positive_int_env(name, default):
+    """Read a positive integer environment setting without breaking startup."""
+    try:
+        value = int(os.getenv(name, str(default)))
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        logger.warning("Invalid %s value; using default %d", name, default)
+        return default
+
+
+MAX_MESSAGE_CHARS = _get_positive_int_env("MAX_MESSAGE_CHARS", 1000)
+MAX_OUTPUT_CHARS = _get_positive_int_env("MAX_OUTPUT_CHARS", 4000)
+RATE_LIMIT_WINDOW = _get_positive_int_env("RATE_LIMIT_WINDOW", 60)
+RATE_LIMIT_MAX = _get_positive_int_env("RATE_LIMIT_MAX", 20)
+INJECTION_SCORE_THRESHOLD = _get_positive_int_env("INJECTION_SCORE_THRESHOLD", 2)
 
 SAFE_INPUT_MESSAGE = "Please enter a customer support question so I can help."
 LONG_INPUT_MESSAGE = (
@@ -18,6 +34,38 @@ PII_INPUT_MESSAGE = (
     "Please don't share sensitive personal information here. "
     "For security, use the secure support form for private details."
 )
+SAFE_OUTPUT_MESSAGE = (
+    "I can help with orders, returns, shipping, products, and payments. "
+    "Could you share a few more details about what you need?"
+)
+SENSITIVE_OUTPUT_MESSAGE = (
+    "I can't share that information. Let me connect you with a human agent."
+)
+
+
+# Aggregate observability only: inputs and generated responses are never logged
+# or retained by this module.
+_security_metrics = defaultdict(int)
+_security_metrics_lock = threading.Lock()
+
+
+def _record_security_event(event):
+    """Record a safe, aggregate guardrail outcome for operational monitoring."""
+    with _security_metrics_lock:
+        _security_metrics[event] += 1
+    logger.info("Guardrail event: %s", event)
+
+
+def get_security_metrics():
+    """Return a snapshot of aggregate guardrail events without sensitive text."""
+    with _security_metrics_lock:
+        return dict(_security_metrics)
+
+
+def reset_security_metrics():
+    """Clear aggregate guardrail metrics, primarily for tests and process reset."""
+    with _security_metrics_lock:
+        _security_metrics.clear()
 
 # ---------------------------------------------------------------------------
 # Unicode normalization & homoglyph defense
@@ -512,49 +560,112 @@ SENSITIVE_INTERNAL_MARKERS = [
     "unrestricted",
 ]
 
+SENSITIVE_INTERNAL_PATTERNS = [
+    r"\b(?:system|developer|hidden|internal)\s*(?:prompt|instructions?)\b",
+    r"\b(?:prompt|instructions?)\s*(?:system|developer|hidden|internal)\b",
+]
+
+SECRET_OUTPUT_PATTERNS = [
+    r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",
+    r"\bAKIA[0-9A-Z]{16}\b",
+    r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b",
+    r"\bsk-[A-Za-z0-9]{20,}\b",
+    r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b",
+]
+
+DANGEROUS_OUTPUT_PATTERNS = [
+    r"<\s*(?:script|iframe|object|embed|style)\b",
+    r"\bon\w+\s*=",
+    r"\b(?:javascript|vbscript)\s*:",
+    r"\bdata\s*:\s*text/(?:html|javascript)",
+]
+
+
+def _contains_payment_card(text):
+    """Detect Luhn-valid card numbers without treating ordinary order IDs as PII."""
+    for candidate in re.findall(r"(?:\d[ -]?){13,19}", text):
+        digits = re.sub(r"[ -]", "", candidate)
+        if not 13 <= len(digits) <= 19:
+            continue
+
+        total = 0
+        for index, digit in enumerate(reversed(digits)):
+            value = int(digit)
+            if index % 2:
+                value *= 2
+                if value > 9:
+                    value -= 9
+            total += value
+        if total % 10 == 0:
+            return True
+    return False
+
+
+def _output_fallback(category):
+    """Return the approved fallback for a blocked output category."""
+    _record_security_event("output_blocked_%s" % category)
+    if category in {"pii", "secret"}:
+        return SENSITIVE_OUTPUT_MESSAGE
+    if category == "business_policy":
+        return (
+            "I'm not authorized to make policy changes. "
+            "Let me connect you with a supervisor who can help."
+        )
+    if category == "toxic":
+        return "I apologize for any confusion. Let me help you with your support question."
+    return SAFE_OUTPUT_MESSAGE
+
 
 def check_output(response, message):
     """Validate bot response through output guardrails.
     Returns (is_safe, response_or_fallback).
     """
-    if not response or not response.strip():
-        return False, (
-            "I can help with orders, returns, shipping, products, and payments. "
-            "Could you share a few more details about what you need?"
-        )
+    if not isinstance(response, str):
+        return False, _output_fallback("invalid")
 
-    response_lower = response.lower()
+    response = _normalize_whitespace(_strip_control_chars(response))
+    security_normalized_response = _normalize_unicode(response)
+    if not response:
+        return False, _output_fallback("empty")
+    if len(response) > MAX_OUTPUT_CHARS:
+        return False, _output_fallback("too_long")
+
+    response_lower = security_normalized_response.lower()
 
     for pattern in PII_PATTERNS:
-        if re.search(pattern, response, re.IGNORECASE):
-            return False, "I can't share that information. Let me connect you with a human agent."
+        if re.search(pattern, security_normalized_response, re.IGNORECASE):
+            return False, _output_fallback("pii")
+    if _contains_payment_card(security_normalized_response):
+        return False, _output_fallback("pii")
+
+    for pattern in SECRET_OUTPUT_PATTERNS:
+        if re.search(pattern, security_normalized_response, re.IGNORECASE):
+            return False, _output_fallback("secret")
+
+    for pattern in DANGEROUS_OUTPUT_PATTERNS:
+        if re.search(pattern, response_lower, re.IGNORECASE):
+            return False, _output_fallback("unsafe_markup")
 
     for phrase in BUSINESS_BLOCKLIST:
         if phrase in response_lower:
-            return False, (
-                "I'm not authorized to make policy changes. "
-                "Let me connect you with a supervisor who can help."
-            )
+            return False, _output_fallback("business_policy")
 
     for pattern in TOXIC_OUTPUT_PATTERNS:
         if re.search(pattern, response_lower):
-            return False, (
-                "I apologize for any confusion. Let me help you with your support question."
-            )
+            return False, _output_fallback("toxic")
 
     for marker in SENSITIVE_INTERNAL_MARKERS:
         if marker in response_lower:
-            return False, (
-                "I can help with orders, returns, shipping, products, and payments. "
-                "What can I help you with?"
-            )
+            return False, _output_fallback("internal")
+    for pattern in SENSITIVE_INTERNAL_PATTERNS:
+        if re.search(pattern, response_lower):
+            return False, _output_fallback("internal")
 
-    if response_lower.strip() == message.lower().strip():
-        return False, (
-            "I can help with orders, returns, shipping, products, and payments. "
-            "Could you rephrase your question?"
-        )
+    message = message if isinstance(message, str) else ""
+    if response_lower.strip() == _normalize_unicode(message).lower().strip():
+        return False, _output_fallback("echo")
 
+    _record_security_event("output_allowed")
     return True, response
 
 
