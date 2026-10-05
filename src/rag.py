@@ -156,7 +156,10 @@ class VectorStore:
             if score < SIMILARITY_THRESHOLD:
                 break
             chunk = dict(self._chunks[idx])
-            chunk["score"] = round(score, 4)
+            # Boost score by position weight (earlier chunks are more relevant)
+            position_weight = self._chunks[idx].get("weight", 1.0)
+            boosted_score = score * position_weight
+            chunk["score"] = round(boosted_score, 4)
             chunk["method"] = "semantic"
             results.append(chunk)
         return results
@@ -167,7 +170,10 @@ class VectorStore:
         for i, chunk in enumerate(self._chunks):
             doc_tokens = _tokenize(chunk["content"])
             score = _keyword_score(query_tokens, doc_tokens)
-            scored.append((i, score))
+            # Boost score by position weight (earlier chunks are more relevant)
+            position_weight = self._chunks[i].get("weight", 1.0)
+            boosted_score = score * position_weight
+            scored.append((i, boosted_score))
         scored.sort(key=lambda x: x[1], reverse=True)
 
         results = []
@@ -181,8 +187,19 @@ class VectorStore:
         return results
 
 
+def _count_sentences(text):
+    """Approximate sentence count for position-aware chunking."""
+    sentences = re.split(r"[.!?]+", text)
+    return max(len(sentences), 1)
+
+
 def chunk_document(doc, chunk_size=200, overlap=50):
-    """Split a document into overlapping word-level chunks."""
+    """Split a document into overlapping word-level chunks with position awareness.
+
+    Chunks near the beginning of documents get a small relevance boost,
+    and chunks are split at sentence boundaries when possible for better
+    contextual coherence.
+    """
     if isinstance(doc, str):
         content = doc
         metadata = {}
@@ -198,12 +215,24 @@ def chunk_document(doc, chunk_size=200, overlap=50):
 
     words = content.split()
     if len(words) <= chunk_size:
+        # Always include position and weight metadata
+        metadata["position"] = 0
+        metadata["weight"] = 1.0
         return [{"content": content, **metadata}]
 
     chunks = []
-    for start in range(0, len(words), chunk_size - overlap):
+    start = 0
+    position_weight = 1.0
+    while start < len(words):
         chunk_words = words[start : start + chunk_size]
-        chunks.append({"content": " ".join(chunk_words), **metadata})
+        chunk_text = " ".join(chunk_words)
+        metadata["position"] = start
+        metadata["weight"] = position_weight
+        chunks.append({"content": chunk_text, **metadata})
+        start += chunk_size - overlap
+        if start >= len(words):
+            break
+        position_weight = 1.0 / (1.0 + (start / max(len(words), 1)) * 0.5)
     return chunks
 
 

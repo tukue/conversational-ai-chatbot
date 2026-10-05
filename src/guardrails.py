@@ -182,6 +182,13 @@ def _normalize_whitespace(text):
     return text.strip()
 
 
+def _strip_html_tags(text):
+    """Strip HTML tags from text."""
+    import re
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
+
+
 def sanitize_input(text):
     """Full input sanitization pipeline."""
     if text is None:
@@ -189,6 +196,7 @@ def sanitize_input(text):
     text = str(text)
     text = _strip_control_chars(text)
     text = _normalize_unicode(text)
+    text = _strip_html_tags(text)
     text = _normalize_whitespace(text)
     return text
 
@@ -462,6 +470,16 @@ def check_input(message):
     if message is None:
         return False, SAFE_INPUT_MESSAGE
 
+    # Check for prompt injection BEFORE sanitization (homoglyph normalization
+    # could transliterate Cyrillic/CJK and break pattern matching)
+    pre_sanitized = str(message)
+    injection_score, matched = _calculate_injection_score(pre_sanitized)
+    if injection_score >= INJECTION_SCORE_THRESHOLD:
+        return False, (
+            "I can't follow requests to bypass my support role. "
+            "I can help with orders, returns, shipping, products, and payments."
+        )
+
     message = sanitize_input(str(message))
 
     if not message:
@@ -549,6 +567,20 @@ def check_output(response, message):
                 "What can I help you with?"
             )
 
+    # Response length check - reject unnaturally short/long responses
+    if len(response) < 10:
+        return False, (
+            "I can help with orders, returns, shipping, products, and payments. "
+            "Could you share a few more details about what you need?"
+        )
+
+    if len(response) > 1000:
+        return False, (
+            "I'm having trouble processing that long of a response. "
+            "Could you rephrase your question?"
+        )
+
+    # Check if response is just a mirror of the user input (infinite loop guard)
     if response_lower.strip() == message.lower().strip():
         return False, (
             "I can help with orders, returns, shipping, products, and payments. "
@@ -556,6 +588,34 @@ def check_output(response, message):
         )
 
     return True, response
+
+
+def _extract_meaningful_phrases(response_text):
+    """Extract key phrases likely to contain factual claims."""
+    sentences = re.split(r"[.!?]+", response_text.lower())
+    phrases = []
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if len(sentence) < 15:
+            continue
+        words = [w for w in sentence.split() if len(w) > 3]
+        if len(words) < 3:
+            continue
+        # Phrases of 3+ content words
+        for n in range(3, min(len(words) + 1, 6)):
+            for i in range(len(words) - n + 1):
+                phrase = " ".join(words[i : i + n])
+                phrases.append(phrase)
+    return phrases
+
+
+def _phrase_coverage(phrase, context_text):
+    """Check how many important words of a phrase appear in context."""
+    words = [w for w in phrase.split() if len(w) > 3]
+    if not words:
+        return 0.0
+    found = sum(1 for w in words if w in context_text)
+    return found / len(words)
 
 
 def validate_rag_response(response, context_chunks):
@@ -571,6 +631,17 @@ def validate_rag_response(response, context_chunks):
 
     response_lower = response.lower()
 
+    # Check meaningful phrase grounding
+    phrases = _extract_meaningful_phrases(response_lower)
+    for phrase in phrases:
+        coverage = _phrase_coverage(phrase, context_text)
+        if coverage < 0.25:
+            return False, (
+                "I found some information that might help, but let me "
+                "connect you with a human agent for the most accurate details."
+            )
+
+    # Existing sentence-level check (adjusted thresholds)
     sentences = re.split(r"[.!?]+", response_lower)
     for sentence in sentences:
         sentence = sentence.strip()

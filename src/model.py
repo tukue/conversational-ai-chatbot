@@ -54,7 +54,8 @@ def generate_response(tokenizer, model, input_text):
             top_k=config.TOP_K,
             top_p=config.TOP_P,
             temperature=config.TEMPERATURE,
-            pad_token_id=tokenizer.eos_token_id
+            pad_token_id=tokenizer.eos_token_id,
+            repetition_penalty=config.REPETITION_PENALTY
         )
 
     response = tokenizer.decode(
