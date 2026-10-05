@@ -279,7 +279,9 @@ Gradio chat response
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml          # CI: tests + lint on push/PR
-│       └── sync-to-hf.yml  # Auto-sync to Hugging Face Spaces
+│       └── deploy.yml      # Auto-sync to Hugging Face Spaces
+├── docs/
+│   └── AI_AGENT_ARCHITECTURE.md  # Agent and RAG architecture diagram
 ├── data/
 │   ├── faq.json            # FAQ knowledge base
 │   └── products.json       # Demo product catalog
