@@ -102,10 +102,36 @@ def _rag_retrieve(message):
     return rag.retrieve(message, top_k=config.RAG_TOP_K)
 
 
+def _extract_direct_faq_answer(context_chunks):
+    """Extract exact FAQ answer without LLM generation.
+
+    Returns the answer string if a matching FAQ chunk is found,
+    or None if no direct answer available (falls back to LLM generation).
+    """
+    for chunk in context_chunks:
+        if chunk.get("type") == "faq":
+            content = chunk.get("content", "")
+            if "Answer:" in content:
+                # Return the exact answer text, stripped
+                answer = content.split("Answer:", 1)[1].strip()
+                if answer:
+                    return answer
+    return None
+
+
 def _build_rag_response(message, context_chunks):
-    """Build a response from RAG context chunks."""
+    """Build a response from RAG context chunks.
+
+    Tries direct FAQ answer extraction first (LLM-free).
+    Falls back to LLM-mediated response generation if no direct answer.
+    """
     if not context_chunks:
         return None
+
+    # Try direct FAQ answer extraction first (no LLM needed)
+    direct_answer = _extract_direct_faq_answer(context_chunks)
+    if direct_answer:
+        return direct_answer
 
     # Sort by position weight (earlier/chunks with higher weight first)
     sorted_chunks = sorted(context_chunks, key=lambda c: c.get("weight", 1.0), reverse=True)
@@ -220,6 +246,19 @@ def chat(message, history):
                 chunk for chunk in context_chunks if chunk.get("id") == expected_source
             ]
             context_chunks = matching_chunks or context_chunks
+
+        # Try direct FAQ answer extraction (LLM-free, fastest path)
+        direct_answer = _extract_direct_faq_answer(context_chunks)
+        if direct_answer:
+            # Direct answer from controlled knowledge base - skip LLM guardrails
+            # but still apply basic output filtering
+            safe_out, response = check_output(direct_answer, message)
+            if safe_out:
+                tip = _suggestion(intent)
+                return response + ("\n\n" + tip if tip else "")
+            # If direct answer fails output filter, fall through to normal RAG path
+
+        # Fall back to LLM-mediated RAG response
         rag_response = _build_rag_response(message, context_chunks)
 
         if rag_response:
