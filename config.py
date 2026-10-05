@@ -23,10 +23,11 @@ MODEL_NAME = "microsoft/DialoGPT-medium"
 DEVICE = os.getenv("CHATBOT_DEVICE") or _detect_device()
 
 # Generation parameters
-MAX_NEW_TOKENS = 100
+MAX_NEW_TOKENS = 150
 TOP_K = 50
-TOP_P = 0.95
-TEMPERATURE = 0.7
+TOP_P = 0.92
+TEMPERATURE = 0.8
+REPETITION_PENALTY = 1.2
 MAX_HISTORY_TURNS = 5
 MAX_INPUT_LENGTH = 1024
 ENABLE_GENERATIVE_FALLBACK = os.getenv("ENABLE_GENERATIVE_FALLBACK", "false").lower() == "true"

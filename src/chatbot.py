@@ -107,14 +107,17 @@ def _build_rag_response(message, context_chunks):
     if not context_chunks:
         return None
 
-    for chunk in context_chunks:
+    # Sort by position weight (earlier/chunks with higher weight first)
+    sorted_chunks = sorted(context_chunks, key=lambda c: c.get("weight", 1.0), reverse=True)
+
+    for chunk in sorted_chunks:
         if chunk.get("type") == "faq":
             answer = chunk.get("content", "")
             if "Answer:" in answer:
                 answer = answer.split("Answer:", 1)[1].strip()
             return answer
 
-    for chunk in context_chunks:
+    for chunk in sorted_chunks:
         if chunk.get("type") == "product":
             product_id = chunk.get("id", "")
             return (
@@ -123,8 +126,8 @@ def _build_rag_response(message, context_chunks):
                 else chunk.get("content", "")
             )
 
-    if context_chunks:
-        return context_chunks[0].get("content", "")
+    if sorted_chunks:
+        return sorted_chunks[0].get("content", "")
 
     return None
 
