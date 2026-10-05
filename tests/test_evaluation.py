@@ -86,7 +86,7 @@ def test_score_edge_cases():
     # Empty response
     score = score_response("test question", "", None)
     assert score.overall == 0.0
-    
+
     # None context
     score = score_response("test question", "Good response", None)
     assert isinstance(score, ResponseScore)
