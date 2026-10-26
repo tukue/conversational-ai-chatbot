@@ -212,11 +212,15 @@ def chat(message, history):
         return reason
 
     if not is_on_topic(message):
-        return (
-            "I'm a customer support assistant for our online store. "
-            "I can help with orders, returns, shipping, products, and payments. "
-            "What can I help you with?"
-        )
+        # Allow delivery platform related queries
+        if _is_delivery_platform_query(message):
+            pass  # Continue processing
+        else:
+            return (
+                "I'm a customer support assistant for our online store. "
+                "I can help with orders, returns, shipping, products, and payments. "
+                "What can I help you with?"
+            )
 
     intent = classify_intent(message)
 
@@ -225,8 +229,17 @@ def chat(message, history):
         "payment_method", "contact_human", "escalate", "discount", "gift_card",
         "complaint",
     }
+    
+    # Enhanced help for platform queries
+    if intent == "greeting" or ("help" in message.lower() and intent == "general"):
+        platform_help = _get_comprehensive_help(message)
+        if platform_help:
+            safe_out, response = check_output(platform_help, message)
+            if safe_out:
+                tip = _suggestion("greeting")
+                return response + ("\n\n" + tip if tip else "")
 
-    if intent in known_intents:
+    if intent in {"return_request", "shipping_info", "damaged_item", "exchange", "lost_package"}:
         response = get_template(intent)
         safe_out, response = check_output(response, message)
         if not safe_out:
@@ -255,6 +268,9 @@ def chat(message, history):
             safe_out, response = check_output(direct_answer, message)
             if safe_out:
                 tip = _suggestion(intent)
+                # Add platform-specific context for shipping issues
+                if intent == "lost_package" or "lost" in message.lower():
+                    response += f"\n\n🛒 You can report this on Sthlm DeliveryHub at {DELIVERY_PLATFORM_URL}/orders"
                 return response + ("\n\n" + tip if tip else "")
             # If direct answer fails output filter, fall through to normal RAG path
 
@@ -272,6 +288,8 @@ def chat(message, history):
                     return get_template("escalate")
 
             tip = _suggestion(intent)
+            if intent == "lost_package" or "lost" in message.lower():
+                rag_response += f"\n\n🛒 Report lost/missing packages at {DELIVERY_PLATFORM_URL}/orders"
             return rag_response + ("\n\n" + tip if tip else "")
 
         results = _get_faq().search(message)
@@ -290,14 +308,28 @@ def chat(message, history):
                 f"You'll receive a tracking number via email once it ships."
             )
             return check_output(response, message)[1]
+        platform_help = _get_platform_help(intent, message)
+        if platform_help:
+            return check_output(platform_help, message)[1]
         response = get_template("order_status")
         return check_output(response, message)[1]
 
     if intent == "payment_issue":
         response = get_template("payment_issue")
-        return check_output(response, message)[1]
+        safe_out, response = check_output(response, message)
+        if safe_out:
+            response += f"\n\n💳 You can update payment methods at {DELIVERY_PLATFORM_URL} during checkout."
+        return response if safe_out else get_template("escalate")
 
     if intent == "product_inquiry":
+        # Check for platform help first
+        platform_help = _get_comprehensive_help(message)
+        if platform_help and ("grocery" in message.lower() or "pharmacy" in message.lower() or "meal" in message.lower()):
+            safe_out, response = check_output(platform_help, message)
+            if safe_out:
+                tip = _suggestion(intent)
+                return response + ("\n\n" + tip if tip else "")
+        
         context_chunks = _rag_retrieve(message)
         rag_response = _build_rag_response(message, context_chunks)
 
@@ -385,3 +417,106 @@ def respond_via_proxy(message, history):
         "I can help with orders, returns, shipping, products, payments, and account questions. "
         "Could you share a few more details about what you need?"
     )
+
+
+# Enhanced support for Delivery Platform
+def _is_delivery_platform_query(message):
+    keywords = [
+        "deliveryhub", "sthlm delivery", "groceries", "pharmacy", "meal",
+        "catalog", "cart", "order tracking", "track", "checkout", "swish", 
+        "klarna", "stripe", "stockholm"
+    ]
+    msg_lower = message.lower()
+    return any(k in msg_lower for k in keywords)
+
+
+def _get_delivery_platform_context(message):
+    return (
+        "You are a support agent for Sthlm DeliveryHub (https://delivery-platform.example.com/), "
+        "a Stockholm-based delivery service for groceries, meals, pharmacy items, and essentials. "
+        "You can help with: browsing catalog, placing orders, tracking orders, cart management, "
+        "payments (Visa, Mastercard, Amex, PayPal, Apple Pay, Google Pay, Swish, Klarna), "
+        "returns/refunds, delivery times, and account issues. "
+        "Always be helpful and guide users to the right pages on the platform."
+    )
+
+
+def _get_platform_help(intent, message):
+    """Get helpful responses specific to Sthlm DeliveryHub platform."""
+    if "track" in message.lower() or intent == "order_status":
+        return (
+            "You can track your order on Sthlm DeliveryHub at https://delivery-platform.example.com/orders. "
+            "Log in to your account to see real-time updates on your delivery status."
+        )
+    if "catalog" in message.lower() or "browse" in message.lower():
+        return (
+            "Browse products at https://delivery-platform.example.com/catalog. "
+            "We have Groceries, Quick Meals, Pharmacy, and Home Essentials available for delivery in Stockholm."
+        )
+    if "cart" in message.lower():
+        return (
+            "View and manage your cart at https://delivery-platform.example.com/cart. "
+            "You can add items, update quantities, and proceed to checkout from there."
+        )
+    return None
+
+
+# Enhanced support for Sthlm DeliveryHub
+DELIVERY_PLATFORM_URL = "https://delivery-platform.example.com"
+DELIVERY_PLATFORM_NAME = "Sthlm DeliveryHub"
+
+def _get_comprehensive_help(message):
+    """Provide comprehensive, supportive help for DeliveryHub."""
+    msg_lower = message.lower()
+    
+    if any(word in msg_lower for word in ["swish", "klarna", "pay"]):
+        return (
+            "💳 **Payment Options on Sthlm DeliveryHub:**\n\n"
+            "We accept Visa, Mastercard, American Express, Discover, PayPal, Apple Pay, Google Pay, and Shop Pay. "
+            "The platform also supports local Swedish payment methods like Swish and Klarna where available.\n\n"
+            "🔒 All payments are securely processed. If your payment is declined:\n"
+            "1. Check card details and available funds\n"
+            "2. Try a different payment method\n"
+            "3. Contact your bank if the issue persists\n\n"
+            "Shop securely at " + DELIVERY_PLATFORM_URL
+        )
+    
+    if any(word in msg_lower for word in ["pharmacy", "medicine", "prescription"]):
+        return (
+            "💊 **Pharmacy & Health Essentials:**\n\n"
+            "Sthlm DeliveryHub offers pharmacy items and health & wellness products in the Pharmacy category. "
+            "Browse at " + DELIVERY_PLATFORM_URL + "/catalog and look for the 'Pharmacy' section.\n\n"
+            "For prescription medications, please check the product details or contact the pharmacy partner directly through the platform."
+        )
+    
+    if any(word in msg_lower for word in ["grocery", "groceries", "food", "meal"]):
+        return (
+            "🛒 **Groceries & Meals:**\n\n"
+            "Find fresh groceries, pantry staples, ready meals, and more at " + DELIVERY_PLATFORM_URL + "/catalog.\n\n"
+            "Browse by category: Groceries, Quick Meals, Pharmacy, and Home Essentials. "
+            "Add items to your cart and checkout for fast delivery across Stockholm!"
+        )
+    
+    if any(word in msg_lower for word in ["stockholm", "delivery area", "zone"]):
+        return (
+            "📍 **Delivery in Stockholm:**\n\n"
+            "Sthlm DeliveryHub delivers across Stockholm with fast, reliable service. "
+            "Delivery times depend on your location and order time. Check availability at checkout.\n\n"
+            "Track your order at " + DELIVERY_PLATFORM_URL + "/orders for real-time updates."
+        )
+    
+    if any(word in msg_lower for word in ["help", "support", "contact"]):
+        return (
+            "🤝 **How I Can Help You:**\n\n"
+            "I'm your AI support agent for Sthlm DeliveryHub. I can help with:\n"
+            "- 📦 Order tracking & status\n"
+            "- 🛍️ Finding products in the catalog\n"
+            "- 🛒 Cart & checkout guidance\n"
+            "- 💳 Payment issues & methods\n"
+            "- ↩️ Returns, refunds & exchanges\n"
+            "- 🚚 Delivery times & tracking\n"
+            "- 💊 Pharmacy & grocery questions\n\n"
+            "Start shopping at " + DELIVERY_PLATFORM_URL + " or ask me anything specific!"
+        )
+    
+    return None
