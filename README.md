@@ -504,3 +504,12 @@ huggingface-cli upload \
 - The FAQ and product search are keyword based. A production app could use embeddings and semantic search.
 - DialoGPT is a lightweight conversational fallback, not a modern instruction-tuned support model.
 - The guardrails are simple regex and keyword checks. Production systems should add stronger moderation and logging.
+
+## LLM policy proxy
+
+A standalone text-only proxy provides input/output screening, model allowlisting,
+separate client/admin authentication and aggregate usage analytics. See
+[design, implementation approaches, setup and tests](docs/LLM_PROXY.md).
+Install its dependencies with `pip install -r requirements-proxy.txt`.
+
+Track completed and pending work in the [implementation backlog](docs/LLM_PROXY_BACKLOG.md).
