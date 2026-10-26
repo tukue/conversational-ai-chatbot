@@ -213,7 +213,7 @@ def chat(message, history):
 
     if not is_on_topic(message):
         # Allow delivery platform related queries
-        if _is_delivery_platform_query(message):
+        if _is_platform_query(message):
             pass  # Continue processing
         else:
             return (
@@ -270,7 +270,7 @@ def chat(message, history):
                 tip = _suggestion(intent)
                 # Add platform-specific context for shipping issues
                 if intent == "lost_package" or "lost" in message.lower():
-                    response += f"\n\n🛒 You can report this on Sthlm DeliveryHub at {DELIVERY_PLATFORM_URL}/orders"
+                    response += f"\n\n🛒 You can report this on Online Shop at {PLATFORM_URL}/orders"
                 return response + ("\n\n" + tip if tip else "")
             # If direct answer fails output filter, fall through to normal RAG path
 
@@ -289,7 +289,7 @@ def chat(message, history):
 
             tip = _suggestion(intent)
             if intent == "lost_package" or "lost" in message.lower():
-                rag_response += f"\n\n🛒 Report lost/missing packages at {DELIVERY_PLATFORM_URL}/orders"
+                rag_response += f"\n\n🛒 Report lost/missing packages at {PLATFORM_URL}/orders"
             return rag_response + ("\n\n" + tip if tip else "")
 
         results = _get_faq().search(message)
@@ -318,7 +318,7 @@ def chat(message, history):
         response = get_template("payment_issue")
         safe_out, response = check_output(response, message)
         if safe_out:
-            response += f"\n\n💳 You can update payment methods at {DELIVERY_PLATFORM_URL} during checkout."
+            response += f"\n\n💳 You can update payment methods at {PLATFORM_URL} during checkout."
         return response if safe_out else get_template("escalate")
 
     if intent == "product_inquiry":
@@ -419,10 +419,10 @@ def respond_via_proxy(message, history):
     )
 
 
-# Enhanced support for Delivery Platform
-def _is_delivery_platform_query(message):
+# Enhanced support for platform queries
+def _is_platform_query(message):
     keywords = [
-        "deliveryhub", "sthlm delivery", "groceries", "pharmacy", "meal",
+        "online shop", "groceries", "pharmacy", "meal",
         "catalog", "cart", "order tracking", "track", "checkout", "swish", 
         "klarna", "stripe", "stockholm"
     ]
@@ -430,10 +430,10 @@ def _is_delivery_platform_query(message):
     return any(k in msg_lower for k in keywords)
 
 
-def _get_delivery_platform_context(message):
+def _get_platform_context(message):
     return (
-        "You are a support agent for Sthlm DeliveryHub (https://delivery-platform.example.com/), "
-        "a Stockholm-based delivery service for groceries, meals, pharmacy items, and essentials. "
+        "You are a support agent for an online shop, "
+        "a delivery service for groceries, meals, pharmacy items, and essentials. "
         "You can help with: browsing catalog, placing orders, tracking orders, cart management, "
         "payments (Visa, Mastercard, Amex, PayPal, Apple Pay, Google Pay, Swish, Klarna), "
         "returns/refunds, delivery times, and account issues. "
@@ -442,10 +442,10 @@ def _get_delivery_platform_context(message):
 
 
 def _get_platform_help(intent, message):
-    """Get helpful responses specific to Sthlm DeliveryHub platform."""
+    """Get helpful responses specific to the online shop platform."""
     if "track" in message.lower() or intent == "order_status":
         return (
-            "You can track your order on Sthlm DeliveryHub at https://delivery-platform.example.com/orders. "
+            "You can track your order on the online shop at https://delivery-platform.example.com/orders. "
             "Log in to your account to see real-time updates on your delivery status."
         )
     if "catalog" in message.lower() or "browse" in message.lower():
@@ -461,38 +461,38 @@ def _get_platform_help(intent, message):
     return None
 
 
-# Enhanced support for Sthlm DeliveryHub
-DELIVERY_PLATFORM_URL = "https://delivery-platform.example.com"
-DELIVERY_PLATFORM_NAME = "Sthlm DeliveryHub"
+# Enhanced support for the online shop
+PLATFORM_URL = "https://delivery-platform.example.com"
+PLATFORM_NAME = "Online Shop"
 
 def _get_comprehensive_help(message):
-    """Provide comprehensive, supportive help for DeliveryHub."""
+    """Provide comprehensive, supportive help for the online shop."""
     msg_lower = message.lower()
     
     if any(word in msg_lower for word in ["swish", "klarna", "pay"]):
         return (
-            "💳 **Payment Options on Sthlm DeliveryHub:**\n\n"
+            "💳 **Payment Options on the Online Shop:**\n\n"
             "We accept Visa, Mastercard, American Express, Discover, PayPal, Apple Pay, Google Pay, and Shop Pay. "
             "The platform also supports local Swedish payment methods like Swish and Klarna where available.\n\n"
             "🔒 All payments are securely processed. If your payment is declined:\n"
             "1. Check card details and available funds\n"
             "2. Try a different payment method\n"
             "3. Contact your bank if the issue persists\n\n"
-            "Shop securely at " + DELIVERY_PLATFORM_URL
+            "Shop securely at " + PLATFORM_URL
         )
     
     if any(word in msg_lower for word in ["pharmacy", "medicine", "prescription"]):
         return (
             "💊 **Pharmacy & Health Essentials:**\n\n"
-            "Sthlm DeliveryHub offers pharmacy items and health & wellness products in the Pharmacy category. "
-            "Browse at " + DELIVERY_PLATFORM_URL + "/catalog and look for the 'Pharmacy' section.\n\n"
+            "The Online Shop offers pharmacy items and health & wellness products in the Pharmacy category. "
+            "Browse at " + PLATFORM_URL + "/catalog and look for the 'Pharmacy' section.\n\n"
             "For prescription medications, please check the product details or contact the pharmacy partner directly through the platform."
         )
     
     if any(word in msg_lower for word in ["grocery", "groceries", "food", "meal"]):
         return (
             "🛒 **Groceries & Meals:**\n\n"
-            "Find fresh groceries, pantry staples, ready meals, and more at " + DELIVERY_PLATFORM_URL + "/catalog.\n\n"
+            "Find fresh groceries, pantry staples, ready meals, and more at " + PLATFORM_URL + "/catalog.\n\n"
             "Browse by category: Groceries, Quick Meals, Pharmacy, and Home Essentials. "
             "Add items to your cart and checkout for fast delivery across Stockholm!"
         )
@@ -500,15 +500,15 @@ def _get_comprehensive_help(message):
     if any(word in msg_lower for word in ["stockholm", "delivery area", "zone"]):
         return (
             "📍 **Delivery in Stockholm:**\n\n"
-            "Sthlm DeliveryHub delivers across Stockholm with fast, reliable service. "
+            "The Online Shop delivers across Stockholm with fast, reliable service. "
             "Delivery times depend on your location and order time. Check availability at checkout.\n\n"
-            "Track your order at " + DELIVERY_PLATFORM_URL + "/orders for real-time updates."
+            "Track your order at " + PLATFORM_URL + "/orders for real-time updates."
         )
     
     if any(word in msg_lower for word in ["help", "support", "contact"]):
         return (
             "🤝 **How I Can Help You:**\n\n"
-            "I'm your AI support agent for Sthlm DeliveryHub. I can help with:\n"
+            "I'm your AI support agent for the Online Shop. I can help with:\n"
             "- 📦 Order tracking & status\n"
             "- 🛍️ Finding products in the catalog\n"
             "- 🛒 Cart & checkout guidance\n"
@@ -516,7 +516,7 @@ def _get_comprehensive_help(message):
             "- ↩️ Returns, refunds & exchanges\n"
             "- 🚚 Delivery times & tracking\n"
             "- 💊 Pharmacy & grocery questions\n\n"
-            "Start shopping at " + DELIVERY_PLATFORM_URL + " or ask me anything specific!"
+            "Start shopping at " + PLATFORM_URL + " or ask me anything specific!"
         )
     
     return None

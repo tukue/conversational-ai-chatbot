@@ -1,11 +1,11 @@
-# Improvement Plan: Conversational AI Chatbot for Sthlm DeliveryHub
+# Improvement Plan: Conversational AI Chatbot for Online Shop
 
 ## Current State Summary
 
 The chatbot is a customer support assistant for an e-commerce platform with the following capabilities:
 
 ### Core Features
-- **Intent Classification** - Routes queries to appropriate handlers (orders, returns, shipping, payments, products, etc.)
+- **Intent Classification** - Routes queries to appropriate handlers (orders, returns, shipping, products, payments, etc.)
 - **FAQ/RAG System** - Knowledge base with direct FAQ extraction (LLM-free path) and RAG retrieval with reranking
 - **Guardrails** - Input sanitization, rate limiting, injection detection, output validation, sandwich defense
 - **Order Management** - Track/cancel orders, change address, extract order numbers from conversation history
@@ -14,8 +14,8 @@ The chatbot is a customer support assistant for an e-commerce platform with the 
 - **LLM Integration** - DialoGPT fallback (disabled by default) or LLM proxy integration for policy-controlled generation
 - **Gradio UI** - Web interface at the app
 
-### Sthlm DeliveryHub Integration (Recent)
-- Guides users to https://delivery-platform-inky.vercel.app/
+### Online Shop Integration (Recent)
+- Guides users to https://delivery-platform.example.com/
 - Provides direct links to Catalog, Cart, Orders, Login pages
 - Handles platform-specific queries with contextual navigation help
 
