@@ -224,12 +224,6 @@ def chat(message, history):
 
     intent = classify_intent(message)
 
-    known_intents = {
-        "greeting", "closing", "cancel_order", "change_address",
-        "payment_method", "contact_human", "escalate", "discount", "gift_card",
-        "complaint",
-    }
-    
     # Enhanced help for platform queries
     if intent == "greeting" or ("help" in message.lower() and intent == "general"):
         platform_help = _get_comprehensive_help(message)
@@ -329,7 +323,6 @@ def chat(message, history):
             if safe_out:
                 tip = _suggestion(intent)
                 return response + ("\n\n" + tip if tip else "")
-        
         context_chunks = _rag_retrieve(message)
         rag_response = _build_rag_response(message, context_chunks)
 
@@ -423,7 +416,7 @@ def respond_via_proxy(message, history):
 def _is_platform_query(message):
     keywords = [
         "online shop", "groceries", "pharmacy", "meal",
-        "catalog", "cart", "order tracking", "track", "checkout", "swish", 
+        "catalog", "cart", "order tracking", "track", "checkout", "swish",
         "klarna", "stripe", "stockholm"
     ]
     msg_lower = message.lower()
@@ -468,7 +461,6 @@ PLATFORM_NAME = "Online Shop"
 def _get_comprehensive_help(message):
     """Provide comprehensive, supportive help for the online shop."""
     msg_lower = message.lower()
-    
     if any(word in msg_lower for word in ["swish", "klarna", "pay"]):
         return (
             "💳 **Payment Options on the Online Shop:**\n\n"
@@ -480,7 +472,6 @@ def _get_comprehensive_help(message):
             "3. Contact your bank if the issue persists\n\n"
             "Shop securely at " + PLATFORM_URL
         )
-    
     if any(word in msg_lower for word in ["pharmacy", "medicine", "prescription"]):
         return (
             "💊 **Pharmacy & Health Essentials:**\n\n"
@@ -488,7 +479,6 @@ def _get_comprehensive_help(message):
             "Browse at " + PLATFORM_URL + "/catalog and look for the 'Pharmacy' section.\n\n"
             "For prescription medications, please check the product details or contact the pharmacy partner directly through the platform."
         )
-    
     if any(word in msg_lower for word in ["grocery", "groceries", "food", "meal"]):
         return (
             "🛒 **Groceries & Meals:**\n\n"
@@ -496,7 +486,6 @@ def _get_comprehensive_help(message):
             "Browse by category: Groceries, Quick Meals, Pharmacy, and Home Essentials. "
             "Add items to your cart and checkout for fast delivery across Stockholm!"
         )
-    
     if any(word in msg_lower for word in ["stockholm", "delivery area", "zone"]):
         return (
             "📍 **Delivery in Stockholm:**\n\n"
@@ -504,7 +493,6 @@ def _get_comprehensive_help(message):
             "Delivery times depend on your location and order time. Check availability at checkout.\n\n"
             "Track your order at " + PLATFORM_URL + "/orders for real-time updates."
         )
-    
     if any(word in msg_lower for word in ["help", "support", "contact"]):
         return (
             "🤝 **How I Can Help You:**\n\n"
@@ -518,5 +506,4 @@ def _get_comprehensive_help(message):
             "- 💊 Pharmacy & grocery questions\n\n"
             "Start shopping at " + PLATFORM_URL + " or ask me anything specific!"
         )
-    
     return None
