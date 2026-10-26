@@ -230,7 +230,7 @@ sequenceDiagram
     participant Model as DialoGPT Model
     participant OG as Output Guardrails
 
-    U->>UI: " what is the duration of delivery?"
+    U->>UI: " when are the delivery schedules on weekdays?"
     UI->>IG: Validate input
     IG-->>UI: Pass
     UI->>IC: Classify intent
