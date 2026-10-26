@@ -220,11 +220,9 @@ button.gr-button-primary:hover {
 
 EXAMPLES = [
     "What's your return policy?",
-    "Where is my order?",
     "How long does shipping take?",
     "Do you sell wireless headphones?",
     "I want to cancel my order",
-    "My package is lost",
     "Talk to a human agent",
 ]
 

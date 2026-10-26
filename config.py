@@ -59,3 +59,11 @@ INJECTION_SCORE_THRESHOLD = int(os.getenv("INJECTION_SCORE_THRESHOLD", "2"))
 ENABLE_SANDWICH_DEFENSE = os.getenv("ENABLE_SANDWICH_DEFENSE", "true").lower() == "true"
 ENABLE_ENCODING_DEFENSE = os.getenv("ENABLE_ENCODING_DEFENSE", "true").lower() == "true"
 ENABLE_RATE_LIMITING = os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
+
+
+# LLM Proxy settings (PROXY-01)
+USE_LLM_PROXY = os.getenv("USE_LLM_PROXY", "false").lower() == "true"
+PROXY_BASE_URL = os.getenv("PROXY_BASE_URL", "http://127.0.0.1:8080")
+PROXY_CLIENT_KEY = os.getenv("PROXY_CLIENT_KEY", "")
+PROXY_MODEL = os.getenv("PROXY_MODEL", "")
+PROXY_TIMEOUT = float(os.getenv("PROXY_TIMEOUT", "60"))

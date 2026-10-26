@@ -322,7 +322,66 @@ def chat(message, history):
         return check_output(response, message)[1]
 
     if config.ENABLE_GENERATIVE_FALLBACK:
-        response = respond_with_dialogpt(message, history)
+        if getattr(config, "USE_LLM_PROXY", False):
+            response = respond_via_proxy(message, history)
+        else:
+            response = respond_with_dialogpt(message, history)
     else:
         response = get_template("general")
     return check_output(response, message)[1]
+
+
+def respond_via_proxy(message, history):
+    import httpx
+
+    # Build messages in proxy format
+    messages = []
+    for user_msg, bot_msg in _history_pairs(history)[-config.MAX_HISTORY_TURNS:]:
+        messages.append({"role": "user", "content": user_msg})
+        messages.append({"role": "assistant", "content": bot_msg})
+
+    if config.ENABLE_SANDWICH_DEFENSE:
+        message = wrap_with_sandwich_defense(message)
+    messages.append({"role": "user", "content": message})
+
+    try:
+        response = httpx.post(
+            f"{config.PROXY_BASE_URL}/v1/chat/completions",
+            headers={"Authorization": f"Bearer {config.PROXY_CLIENT_KEY}"},
+            json={
+                "model": config.PROXY_MODEL,
+                "messages": messages,
+                "max_tokens": config.MAX_NEW_TOKENS,
+            },
+            timeout=config.PROXY_TIMEOUT,
+        )
+        if response.status_code == 200:
+            data = response.json()
+            choices = data.get("choices", [])
+            if choices and choices[0].get("message", {}).get("content"):
+                content = choices[0]["message"]["content"].strip()
+                if content:
+                    return content
+        # On policy denial or errors, don't fallback silently - return safe generic response
+        # to avoid bypassing proxy protections
+        if response.status_code in (403, 429, 413):
+            return (
+                "I can't process that request due to a policy restriction. "
+                "Could you rephrase it or ask about something else?"
+            )
+        if response.status_code in (408, 504):
+            return "The request timed out. Please try again."
+        if response.status_code in (503,):
+            return "The service is temporarily busy. Please try again in a moment."
+        if response.status_code >= 500:
+            return (
+                "I'm having trouble connecting right now. "
+                "Please try again later."
+            )
+    except Exception as exc:
+        logger.warning("Proxy request failed: %s", exc.__class__.__name__)
+
+    return (
+        "I can help with orders, returns, shipping, products, payments, and account questions. "
+        "Could you share a few more details about what you need?"
+    )
