@@ -230,7 +230,7 @@ sequenceDiagram
     participant Model as DialoGPT Model
     participant OG as Output Guardrails
 
-    U->>UI: "What's the meaning of life?"
+    U->>UI: " what is the duration of delivery?"
     UI->>IG: Validate input
     IG-->>UI: Pass
     UI->>IC: Classify intent
