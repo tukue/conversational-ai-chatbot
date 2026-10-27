@@ -1,10 +1,10 @@
 # LLM proxy implementation backlog
 
-Updated: 2026-10-26. Scope: a service that monitors LLM inputs and outputs,
+Updated: 2026-10-27. Scope: a service that monitors LLM inputs and outputs,
 enforces security policies, and provides usage analytics.
 
-Status: the standalone buffered text proxy is implemented. Chatbot integration and
-production rollout are pending. Checked items describe implemented behavior, not a
+Status: the buffered text proxy and opt-in chatbot integration are implemented.
+Production rollout is pending. Checked items describe implemented behavior, not a
 claim that the service is production-ready.
 
 ## Completed
@@ -37,7 +37,14 @@ claim that the service is production-ready.
 - [x] **DONE-09 — Regression tests and CI dependencies.** Mock upstream calls;
   test blocked delivery with usage counted, malformed providers, persistence across
   restarts, concurrent updates and storage failure. Both workflows install proxy dependencies.
-  Latest completed validation: 325 passed, 1 skipped; Ruff passed.
+  Latest completed validation (2026-10-27): 365 passed, 1 skipped; Ruff passed.
+  Chatbot scope coverage: 91%.
+
+- [x] **PROXY-01 — Chatbot integration.** Opt-in generation traverses the proxy;
+  history and output denials, outages and malformed responses fail closed without
+  local/direct-provider fallback. Legacy DialoGPT remains an explicit alternative
+  outside proxy mode. Evidence: [client](../src/chatbot.py),
+  [integration tests](../tests/test_chatbot_proxy.py), [setup and limitations](LLM_PROXY.md#chatbot-integration-proxy-01).
 
 ## Pending implementation
 
@@ -46,7 +53,6 @@ P2 = extended capabilities. These are priorities, not delivery dates.
 
 | ID | Priority | Status | Deliverable | Acceptance criteria and tests | Dependencies |
 | --- | --- | --- | --- | --- | --- |
-| PROXY-01 | P0 | Pending | Integrate chatbot generation with proxy | Configured generation calls traverse the proxy; no silent direct-provider fallback on rejection; policy denials and outages render safe UI responses. End-to-end tests verify forwarding and blocked delivery. Decide how the existing local DialoGPT fallback fits the upstream contract. | DONE-02 |
 | PROXY-02 | P0 | Pending | Tenant identities and credential lifecycle | Resolve identity from credentials; reject revoked/expired credentials; enforce per-tenant model permissions; support rotation without logging secrets. Test cross-tenant isolation and client/admin separation. | DONE-03 |
 | PROXY-03 | P0 | Pending | Shared quotas and concurrency accounting | Atomic per-tenant limits across workers, explicit store-outage behavior and bounded token-budget reservations. Test concurrent workers, quota-window boundaries, cancellation and reservation release. | PROXY-02 |
 | PROXY-04 | P0 | Pending | Dedicated deployment configuration | Reproducible proxy container, ingress TLS/body/time limits, secret injection, persistent volume permissions, health probes and egress restrictions. Smoke-test restart and approved upstream connectivity; verify applications cannot bypass proxy enforcement. | PROXY-01 |
@@ -63,7 +69,7 @@ P2 = extended capabilities. These are priorities, not delivery dates.
 
 ## Suggested delivery order
 
-1. Integrate the chatbot (PROXY-01) and prepare deployment (PROXY-04).
+1. Prepare deployment (PROXY-04) for the completed chatbot integration (PROXY-01).
 2. Add tenant identities and shared quotas (PROXY-02, PROXY-03).
 3. Version policies, strengthen detection, add resilience and alerts (PROXY-05–08).
 4. Extend analytics and qualify under load (PROXY-09–11).

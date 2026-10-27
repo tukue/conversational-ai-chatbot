@@ -509,9 +509,11 @@ huggingface-cli upload \
 
 ## LLM policy proxy
 
-A standalone text-only proxy provides input/output screening, model allowlisting,
+An optional text-only proxy provides input/output screening, model allowlisting,
 separate client/admin authentication and aggregate usage analytics. See
 [design, implementation approaches, setup and tests](docs/LLM_PROXY.md).
 Install its dependencies with `pip install -r requirements-proxy.txt`.
+Enable chatbot integration with `ENABLE_GENERATIVE_FALLBACK=true` and
+`USE_LLM_PROXY=true`; see the [client configuration](docs/LLM_PROXY.md#chatbot-integration-proxy-01).
 
 Track completed and pending work in the [implementation backlog](docs/LLM_PROXY_BACKLOG.md).
