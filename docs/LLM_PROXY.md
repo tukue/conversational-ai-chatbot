@@ -28,7 +28,7 @@ flowchart LR
 ```
 
 The implementation is a standalone FastAPI application in `src/llm_proxy.py`.
-It does not change the existing Gradio chatbot. An upstream adapter accepts a text
+The Gradio chatbot can opt into this gateway for generative fallback. An upstream adapter accepts a text
 chat completion request and expects one assistant message plus provider token usage.
 This is a narrow chat-shaped API, not full compatibility with any provider SDK.
 
@@ -170,3 +170,35 @@ and `/analytics` increments `analytics_write_errors`. History read failures retu
 a generic 503. Failed writes are not retried and abrupt termination can lose the
 recent metrics (WAL uses synchronous=NORMAL), so reports are operational analytics, not a billing ledger.
 Monitor write errors and use consistent retention settings across workers.
+
+## Chatbot integration (PROXY-01)
+
+Install proxy dependencies in the chatbot environment too. Start the gateway separately,
+then configure the chatbot before starting `app.py`:
+
+```bash
+export ENABLE_GENERATIVE_FALLBACK=true
+export USE_LLM_PROXY=true
+export PROXY_BASE_URL=http://127.0.0.1:8080
+export PROXY_CLIENT_KEY='same-client-secret-as-gateway'
+export PROXY_MODEL='your-model-id'
+export PROXY_TIMEOUT=60
+```
+
+Deterministic delivery, template and retrieval routes remain first. Only unresolved
+requests use generation. The client forwards the last `MAX_HISTORY_TURNS` complete
+user/assistant pairs and the current message, with the configured generation limit.
+The gateway screens history and buffers generated output before delivery; the chatbot
+also screens its final response. Denials, invalid responses and outages return safe
+support messages without exposing provider errors. Rate limits ask the user to wait.
+The client does not follow redirects, use environment HTTP proxies, or retry generation.
+
+Generation stays disabled by default. With generation enabled and `USE_LLM_PROXY=false`,
+the legacy local DialoGPT path remains available. With `USE_LLM_PROXY=true`, failures
+never switch to DialoGPT or a direct provider. DialoGPT is not an upstream adapter for
+this gateway; proxy mode requires the documented HTTPS chat-completion upstream.
+Network restrictions preventing application bypass remain deployment work (PROXY-04).
+
+`tests/test_chatbot_proxy.py` exercises the chat entry point through the actual gateway
+with a mocked provider, including history rejection, output blocking with usage retained,
+credential separation, invalid responses, outages and explicit local-mode selection.

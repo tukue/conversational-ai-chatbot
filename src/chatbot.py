@@ -292,7 +292,7 @@ def respond_via_proxy(message, history):
 
     try:
         response = httpx.post(
-            f"{config.PROXY_BASE_URL}/v1/chat/completions",
+            f"{config.PROXY_BASE_URL.rstrip('/')}/v1/chat/completions",
             headers={"Authorization": f"Bearer {config.PROXY_CLIENT_KEY}"},
             json={
                 "model": config.PROXY_MODEL,
@@ -300,21 +300,30 @@ def respond_via_proxy(message, history):
                 "max_tokens": config.MAX_NEW_TOKENS,
             },
             timeout=config.PROXY_TIMEOUT,
+            follow_redirects=False,
+            trust_env=False,
         )
         if response.status_code == 200:
             data = response.json()
-            choices = data.get("choices", [])
-            if choices and choices[0].get("message", {}).get("content"):
-                content = choices[0]["message"]["content"].strip()
-                if content:
-                    return content
+            choices = data.get("choices", []) if isinstance(data, dict) else []
+            if (isinstance(choices, list) and len(choices) == 1
+                    and isinstance(choices[0], dict)):
+                result = choices[0].get("message")
+                content = result.get("content") if isinstance(result, dict) else None
+                if (isinstance(result, dict) and result.get("role") == "assistant"
+                        and isinstance(content, str)
+                        and content.strip() and not result.get("tool_calls")
+                        and not result.get("function_call")):
+                    return content.strip()
         # On policy denial or errors, don't fallback silently - return safe generic response
         # to avoid bypassing proxy protections
-        if response.status_code in (403, 429, 413):
+        if response.status_code in (403, 413):
             return (
                 "I can't process that request due to a policy restriction. "
                 "Could you rephrase it or ask about something else?"
             )
+        if response.status_code == 429:
+            return "Too many requests. Please wait a moment and try again."
         if response.status_code in (408, 504):
             return "The request timed out. Please try again."
         if response.status_code in (503,):
@@ -324,13 +333,12 @@ def respond_via_proxy(message, history):
                 "I'm having trouble connecting right now. "
                 "Please try again later."
             )
+    except httpx.TimeoutException:
+        return "The request timed out. Please try again."
     except Exception as exc:
         logger.warning("Proxy request failed: %s", exc.__class__.__name__)
 
-    return (
-        "I can help with orders, returns, shipping, products, payments, and account questions. "
-        "Could you share a few more details about what you need?"
-    )
+    return "Support generation is temporarily unavailable. Please use Help on your order."
 
 
 # Enhanced support for platform queries
