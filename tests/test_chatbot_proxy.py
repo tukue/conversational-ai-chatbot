@@ -34,6 +34,7 @@ def integration(monkeypatch):
         def forward(url, **kwargs):
             assert url == "http://proxy.test/v1/chat/completions"
             assert kwargs.pop("trust_env") is False
+            assert kwargs.pop("follow_redirects") is False
             return client.post("/v1/chat/completions", **kwargs)
         monkeypatch.setattr(httpx, "post", forward)
         yield client, calls, output
@@ -80,14 +81,18 @@ def test_safe_status_responses(integration, monkeypatch, status, expected):
     assert "private" not in response
 
 
-@pytest.mark.parametrize("payload", [None, {}, {"choices": []}, {"choices": [None]},
+@pytest.mark.parametrize("payload", [None, [], "invalid", {}, {"choices": None},
+    {"choices": []}, {"choices": [None]}, {"choices": [42]},
+    {"choices": [{"message": None}]}, {"choices": [{"message": []}]},
     {"choices": [{"message": {"role": "user", "content": "private"}}]},
     {"choices": [{"message": {"role": "assistant", "content": 42}}]},
     {"choices": [{"message": {"role": "assistant", "content": " "}}]},
     {"choices": [{"message": {"role": "assistant", "content": "private", "tool_calls": [{}]}}]}])
-def test_malformed_response_fails_closed(integration, monkeypatch, payload):
-    monkeypatch.setattr(httpx, "post", lambda *a, **k: httpx.Response(200, json=payload))
+def test_malformed_response_fails_closed(integration, monkeypatch, caplog, payload):
+    monkeypatch.setattr(httpx, "post",
+                        lambda *a, **k: httpx.Response(200, content=json.dumps(payload)))
     assert "unavailable" in chatbot.chat("I need support", [])
+    assert "Proxy request failed" not in caplog.text
 
 
 @pytest.mark.parametrize("error, expected", [(httpx.ReadTimeout, "timed out"),

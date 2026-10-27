@@ -305,11 +305,13 @@ def respond_via_proxy(message, history):
         )
         if response.status_code == 200:
             data = response.json()
-            choices = data.get("choices", [])
-            if isinstance(choices, list) and len(choices) == 1:
-                result = choices[0].get("message", {})
-                content = result.get("content")
-                if (result.get("role") == "assistant" and isinstance(content, str)
+            choices = data.get("choices", []) if isinstance(data, dict) else []
+            if (isinstance(choices, list) and len(choices) == 1
+                    and isinstance(choices[0], dict)):
+                result = choices[0].get("message")
+                content = result.get("content") if isinstance(result, dict) else None
+                if (isinstance(result, dict) and result.get("role") == "assistant"
+                        and isinstance(content, str)
                         and content.strip() and not result.get("tool_calls")
                         and not result.get("function_call")):
                     return content.strip()
