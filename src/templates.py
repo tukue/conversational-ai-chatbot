@@ -1,6 +1,6 @@
 TEMPLATES = {
     "greeting": [
-        "Hello! Welcome to our store. How can I help you today?",
+        "Hello! Welcome to delivery platform support. How can I help you today?",
         "Hi there! I'm your customer support assistant. What can I do for you?",
     ],
     "closing": [
@@ -50,13 +50,13 @@ TEMPLATES = {
         "I'm sorry to hear you're unhappy. Let me do my best to make this right. Please tell me what happened so I can help.",
     ],
     "contact_human": [
-        "I understand you'd like to speak with a human agent. Let me transfer you. In the meantime, could you briefly describe your issue so I can pass it along?",
+        "I understand you'd like to speak with a human agent. Open Help on your order to request a human agent; I cannot transfer chats directly. In the meantime, could you briefly describe your issue so I can pass it along?",
     ],
     "escalate": [
-        "I'll escalate this to a supervisor right away. Please expect a call or email within 2 hours. Your case ID will be provided shortly.",
+        "To escalate this to a supervisor, open Help on your order and request a review. I cannot create a case or promise a response time here.",
     ],
     "general": [
-        "I'm not sure I understand. Could you tell me more? I can help with orders, returns, shipping, products, and more.",
+        "I'm not sure I understand. Could you tell me more? I can help with deliveries, couriers, missing items, checkout, and refunds.",
     ],
 }
 
