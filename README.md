@@ -517,3 +517,9 @@ Enable chatbot integration with `ENABLE_GENERATIVE_FALLBACK=true` and
 `USE_LLM_PROXY=true`; see the [client configuration](docs/LLM_PROXY.md#chatbot-integration-proxy-01).
 
 Track completed and pending work in the [implementation backlog](docs/LLM_PROXY_BACKLOG.md).
+
+
+To run the proxy inside the existing Gradio application, set
+`START_INTERNAL_LLM_PROXY=true` alongside the generation flags and configure the
+upstream through `config.py`. See [bundled Gradio deployment](docs/LLM_PROXY.md#bundled-gradio-deployment-proxy-04)
+for required settings, startup behavior, health checks and isolation limits.

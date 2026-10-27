@@ -83,3 +83,7 @@ PROXY_MAX_CONCURRENT_REQUESTS = int(os.getenv("PROXY_MAX_CONCURRENT_REQUESTS", "
 PROXY_UPLOAD_TIMEOUT_SECONDS = float(os.getenv("PROXY_UPLOAD_TIMEOUT_SECONDS", "10"))
 PROXY_ANALYTICS_DB = os.getenv("PROXY_ANALYTICS_DB") or None
 PROXY_ANALYTICS_RETENTION_DAYS = int(os.getenv("PROXY_ANALYTICS_RETENTION_DAYS", "90"))
+
+# Optional gateway in the same Gradio application (no Docker migration needed).
+START_INTERNAL_LLM_PROXY = os.getenv("START_INTERNAL_LLM_PROXY", "false").lower() == "true"
+PROXY_STARTUP_TIMEOUT_SECONDS = float(os.getenv("PROXY_STARTUP_TIMEOUT_SECONDS", "15"))
