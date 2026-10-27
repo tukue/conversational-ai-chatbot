@@ -140,36 +140,6 @@ button.gr-button-primary:hover {
     transform: translateY(-1px) !important;
 }
 
-/* ── Examples ── */
-.gr-examples {
-    padding: 0.75rem 1.25rem !important;
-    background: #f8fafc !important;
-    border-top: 1px solid var(--border) !important;
-}
-.gr-examples label {
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
-    color: var(--text-muted) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    margin-bottom: 0.5rem !important;
-}
-.gr-examples button {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 20px !important;
-    padding: 0.3rem 0.9rem !important;
-    font-size: 0.8rem !important;
-    color: var(--text) !important;
-    transition: all 0.2s !important;
-    cursor: pointer !important;
-}
-.gr-examples button:hover {
-    border-color: var(--accent) !important;
-    background: var(--accent-light) !important;
-    color: var(--accent-dark) !important;
-}
-
 /* ── Footer ── */
 .app-footer {
     text-align: center;
@@ -218,14 +188,6 @@ button.gr-button-primary:hover {
 }
 """
 
-EXAMPLES = [
-    "My delivery is late",
-    "How do I contact my courier?",
-    "There are missing items in my order",
-    "I want to cancel my order",
-    "Talk to a human agent",
-]
-
 HEADER_HTML = """
 <div class="app-header">
     <h1>Delivery Platform Support</h1>
@@ -262,8 +224,6 @@ def main():
             fn=respond,
             title=None,
             description=None,
-            examples=EXAMPLES,
-            cache_examples=False,
             type="messages",
         )
 
