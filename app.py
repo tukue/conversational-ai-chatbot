@@ -198,7 +198,7 @@ EXAMPLES = [
 
 HEADER_HTML = """
 <div class="app-header">
-    <h1>Delivery Platform Support</h1>
+    <h1>Customer Support AI-Chatbot</h1>
     <p class="subtitle">Get help with deliveries, couriers, missing items, and payments.</p>
     <span class="badge">AI-Powered</span>
 </div>

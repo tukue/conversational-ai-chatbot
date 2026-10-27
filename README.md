@@ -1,5 +1,5 @@
 ---
-title: Delivery Platform Support Chatbot
+title: Customer Support AI-Chatbot
 emoji: 💬
 colorFrom: blue
 colorTo: green
@@ -21,7 +21,7 @@ tags:
 short_description: Delivery support with guardrails and monitoring.
 ---
 
-# Delivery Platform Support Chatbot
+# Customer Support AI-Chatbot
 
 [![Deploy to HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97-Deploy%20to%20Spaces-blue)](https://huggingface.co/spaces/new?sdk=gradio)
 [![Live Demo](https://img.shields.io/badge/🚀-Live%20Demo-brightgreen)](https://huggingface.co/spaces/Tukue/customer-support-ai)

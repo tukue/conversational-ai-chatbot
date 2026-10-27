@@ -33,7 +33,7 @@ MAX_INPUT_LENGTH = 1024
 ENABLE_GENERATIVE_FALLBACK = os.getenv("ENABLE_GENERATIVE_FALLBACK", "false").lower() == "true"
 
 # App settings
-APP_TITLE = "Delivery Platform Support"
+APP_TITLE = "Customer Support AI-Chatbot"
 APP_DESCRIPTION = "Support for deliveries, couriers, order issues, checkout, and refunds"
 APP_THEME = _get_theme()
 SHARE = os.getenv("GRADIO_SHARE", "false").lower() == "true"
