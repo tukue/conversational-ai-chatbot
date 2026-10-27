@@ -1,5 +1,5 @@
 ---
-title: Customer Support AI Chatbot
+title: Delivery Platform Support Chatbot
 emoji: 💬
 colorFrom: blue
 colorTo: green
@@ -18,10 +18,10 @@ tags:
   - portfolio
   - rag
   - guardrails
-short_description: E-commerce support chatbot with RAG and guardrails.
+short_description: Delivery support chatbot with guardrails and input/output monitoring.
 ---
 
-# Customer Support AI Chatbot
+# Delivery Platform Support Chatbot
 
 [![Deploy to HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97-Deploy%20to%20Spaces-blue)](https://huggingface.co/spaces/new?sdk=gradio)
 [![Live Demo](https://img.shields.io/badge/🚀-Live%20Demo-brightgreen)](https://huggingface.co/spaces/Tukue/customer-support-ai)
@@ -56,18 +56,20 @@ short_description: E-commerce support chatbot with RAG and guardrails.
 
 ---
 
-An e-commerce customer support chatbot built with Gradio and Hugging Face Transformers. It combines rule-based intent routing, FAQ retrieval, product search, safety guardrails, and a DialoGPT fallback model for general conversation.
+A delivery platform support chatbot built with Gradio and Hugging Face Transformers. It combines rule-based intent routing, FAQ retrieval, product search, safety guardrails, and a DialoGPT fallback model for general conversation.
 
 This project is designed as an AI portfolio project: it shows practical product thinking, deployment readiness, and clean separation between UI, routing, safety, knowledge base, and model code.
 
 ## What The Chatbot Can Do
 
-- Answer common support questions about returns, shipping, payments, damaged items, lost packages, exchanges, discounts, and gift cards.
-- Search a small product catalog from `data/products.json`.
-- Ask for an order number when needed and reuse recent chat history when the user already provided one.
-- Block sensitive personal information such as SSNs, card numbers, and phone numbers.
-- Redirect off-topic or unsafe prompts back to customer support.
-- Use `microsoft/DialoGPT-medium` only as a fallback when a question is not handled by the structured support logic.
+- Guide customers through late deliveries, courier contact, missing or wrong items, delivery areas, fees, checkout, cancellation, and refunds.
+- Reuse an order number from recent history while directing customers to authenticated tracking. No live order lookup, cancellation, refund, or human transfer is performed.
+- Screen raw input before sanitization and screen the complete output once before returning it, including templates and fallback messages.
+- Monitor input/output character counts, allowed/blocked requests, routes, errors, and latency without retaining conversation text or identifiers.
+- Keep the existing sample product catalog for retrieval demonstrations; its inventory is explicitly labeled as sample data. Delivery guidance takes precedence over retail FAQ policies.
+- Optionally use a generative fallback through the policy proxy. Empty client keys fail closed before a network request.
+
+See [delivery support and monitoring](docs/DELIVERY_SUPPORT.md) for scope, metrics access, and PR #11 review findings.
 
 ## What This Demonstrates
 

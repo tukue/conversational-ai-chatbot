@@ -220,3 +220,42 @@ def test_upload_and_total_upstream_deadlines():
 def test_invalid_resource_limits(overrides):
     with pytest.raises(ValueError):
         Settings("client", "admin", "provider", "https://provider.test", ("model",), **overrides)
+
+
+@pytest.mark.parametrize("field", ["client_key", "admin_key", "upstream_key"])
+def test_whitespace_credentials_rejected(field):
+    values = dict(client_key="client", admin_key="admin", upstream_key="provider",
+                  upstream_url="https://provider.test/chat", models=("test-model",))
+    values[field] = "  "
+    with pytest.raises(ValueError):
+        Settings(**values)
+
+
+def test_parallel_rate_limit_and_window_reset(monkeypatch):
+    import asyncio
+    from src import llm_proxy
+
+    clock = [100.0]
+    monkeypatch.setattr(llm_proxy, "monotonic", lambda: clock[0])
+
+    async def scenario():
+        async def upstream(request):
+            await asyncio.sleep(0)
+            return httpx.Response(200, json={
+                "choices": [{"message": {"role": "assistant", "content": "Open Orders for delivery updates."}}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+            })
+        settings = Settings("client", "admin", "provider", "https://provider.test/chat", ("test-model",),
+                            requests_per_minute=3, max_concurrent_requests=20)
+        app = create_app(settings, httpx.MockTransport(upstream))
+        async with app.router.lifespan_context(app):
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                async def request():
+                    return await client.post("/v1/chat/completions", headers={"Authorization": "Bearer client"},
+                                             json={"model": "test-model", "messages": [{"role": "user", "content": "Hello"}]})
+                for window in (100.0, 161.0):
+                    clock[0] = window
+                    results = await asyncio.gather(*(request() for _ in range(12)))
+                    assert sum(r.status_code == 200 for r in results) == 3
+                    assert sum(r.status_code == 429 for r in results) == 9
+    asyncio.run(scenario())

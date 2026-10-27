@@ -219,17 +219,17 @@ button.gr-button-primary:hover {
 """
 
 EXAMPLES = [
-    "What's your return policy?",
-    "How long does shipping take?",
-    "Do you sell wireless headphones?",
+    "My delivery is late",
+    "How do I contact my courier?",
+    "There are missing items in my order",
     "I want to cancel my order",
     "Talk to a human agent",
 ]
 
 HEADER_HTML = """
 <div class="app-header">
-    <h1>Customer Support AI</h1>
-    <p class="subtitle">Get help with orders, returns, shipping, and products.</p>
+    <h1>Delivery Platform Support</h1>
+    <p class="subtitle">Get help with deliveries, couriers, missing items, and payments.</p>
     <span class="badge">AI-Powered</span>
 </div>
 """

@@ -60,7 +60,7 @@ class Settings:
     analytics_retention_days: int = 90
 
     def __post_init__(self):
-        if not all((self.client_key, self.admin_key, self.upstream_key, self.models)):
+        if not all((self.client_key.strip(), self.admin_key.strip(), self.upstream_key.strip(), self.models)):
             raise ValueError("Proxy credentials and model allowlist are required")
         if self.client_key == self.admin_key:
             raise ValueError("Use separate client and administrator keys")
@@ -110,7 +110,8 @@ def create_app(settings: Settings, transport=None) -> FastAPI:
                   openapi_url=None, lifespan=lifespan)
     app.state.ready = False
     app.state.analytics_store = None
-    active_requests = 0
+    concurrency_gate = anyio.CapacityLimiter(settings.max_concurrent_requests)
+    rate_lock = anyio.Lock()
 
     @app.get("/health/live")
     async def live():
@@ -147,7 +148,7 @@ def create_app(settings: Settings, transport=None) -> FastAPI:
 
     @app.post("/v1/chat/completions")
     async def complete(request: Request):
-        nonlocal window_start, window_requests, active_requests
+        nonlocal window_start, window_requests
         started = monotonic()
         request_id = str(uuid4())
         outcome = "internal_error"
@@ -157,16 +158,19 @@ def create_app(settings: Settings, transport=None) -> FastAPI:
             authenticate(request, settings.client_key)
             if not app.state.ready:
                 raise HTTPException(503, "Service not ready")
-            if active_requests >= settings.max_concurrent_requests:
-                raise HTTPException(503, "Service busy", headers={"Retry-After": "1"})
-            active_requests += 1
+            try:
+                concurrency_gate.acquire_nowait()
+            except anyio.WouldBlock:
+                raise HTTPException(503, "Service busy", headers={"Retry-After": "1"}) from None
             admitted = True
-            if started - window_start >= 60:
-                window_start, window_requests = started, 0
-            if window_requests >= settings.requests_per_minute:
-                raise HTTPException(429, "Rate limit exceeded",
-                                    headers={"Retry-After": str(max(1, math.ceil(60 - (started - window_start))))})
-            window_requests += 1
+            async with rate_lock:
+                now = monotonic()
+                if now - window_start >= 60:
+                    window_start, window_requests = now, 0
+                if window_requests >= settings.requests_per_minute:
+                    raise HTTPException(429, "Rate limit exceeded",
+                                        headers={"Retry-After": str(max(1, math.ceil(60 - (now - window_start))))})
+                window_requests += 1
             body = bytearray()
             try:
                 with anyio.fail_after(settings.upload_timeout_seconds):
@@ -256,7 +260,7 @@ def create_app(settings: Settings, transport=None) -> FastAPI:
                 counters["analytics_write_errors"] += 1
             finally:
                 if admitted:
-                    active_requests -= 1
+                    concurrency_gate.release()
 
     return app
 

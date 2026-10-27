@@ -33,8 +33,8 @@ MAX_INPUT_LENGTH = 1024
 ENABLE_GENERATIVE_FALLBACK = os.getenv("ENABLE_GENERATIVE_FALLBACK", "false").lower() == "true"
 
 # App settings
-APP_TITLE = "Customer Support Chatbot"
-APP_DESCRIPTION = "AI-powered customer support chatbot using Microsoft's DialoGPT-medium"
+APP_TITLE = "Delivery Platform Support"
+APP_DESCRIPTION = "Support for deliveries, couriers, order issues, checkout, and refunds"
 APP_THEME = _get_theme()
 SHARE = os.getenv("GRADIO_SHARE", "false").lower() == "true"
 SERVER_NAME = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")

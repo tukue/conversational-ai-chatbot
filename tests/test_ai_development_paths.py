@@ -63,8 +63,8 @@ def test_chat_routes_rag_rejection_and_product_catalog_fallback(monkeypatch):
     monkeypatch.setattr(chatbot, "is_on_topic", lambda value: True)
     monkeypatch.setattr(chatbot, "classify_intent", lambda value: "return_request")
     monkeypatch.setattr(chatbot, "_rag_retrieve", lambda value: [{"type": "faq", "content": "Answer: safe"}])
-    monkeypatch.setattr(chatbot, "check_output", lambda response, message: (False, response))
-    assert chatbot.chat("return", []) == chatbot.get_template("escalate")
+    monkeypatch.setattr(chatbot, "check_output", lambda response, message: (False, "Safe output fallback"))
+    assert chatbot.chat("return", []) == "Safe output fallback"
 
     monkeypatch.setattr(chatbot, "classify_intent", lambda value: "product_inquiry")
     monkeypatch.setattr(chatbot, "_rag_retrieve", lambda value: [])
@@ -72,7 +72,7 @@ def test_chat_routes_rag_rejection_and_product_catalog_fallback(monkeypatch):
         "name": "Widget", "price": 1.0, "description": "Useful", "in_stock": False, "id": "P1"
     }]))
     monkeypatch.setattr(chatbot, "check_output", lambda response, message: (True, response))
-    assert "Currently out of stock" in chatbot.chat("product", [])
+    assert "Confirm current price and availability" in chatbot.chat("product", [])
 
 
 def test_vector_store_semantic_and_keyword_fallback_paths():

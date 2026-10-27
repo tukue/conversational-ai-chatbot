@@ -52,7 +52,8 @@ def test_generative_fallback_wraps_message_once(monkeypatch):
 def test_chat_return_policy():
     response = chat("What's your return policy?", [])
     assert "return" in response.lower()
-    assert "30 days" in response.lower()
+    assert "store policy" in response.lower()
+    assert "30 days" not in response.lower()
 
 
 def test_chat_order_status():
@@ -121,7 +122,7 @@ def test_chat_escalate():
 
 def test_chat_payment_method():
     response = chat("What payment methods do you accept?", [])
-    assert "Visa" in response
+    assert "secure checkout" in response
 
 
 def test_chat_payment_issue():
