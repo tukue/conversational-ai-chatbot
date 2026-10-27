@@ -4,7 +4,7 @@ The default chat experience focuses on delivery support. Specific delivery route
 `src/delivery.py` handle late orders, missing/wrong items, courier contact, coverage,
 delivery estimates and fees, cart/checkout, address changes, cancellation, payment
 methods, groceries/meals, pharmacy navigation, and refunds. Explicit human-agent
-or supervisor requests take precedence. The Gradio header reflects these workflows. The chat UI has no sample-question buttons.
+or supervisor requests take precedence. The Gradio header reflects these workflows. The chat UI offers sample questions about missing items, refunds, delivery fees, checkout, and payment methods. Live order-status and lost-package samples are excluded.
 
 Responses guide customers to Orders, Track delivery, secure checkout, and Help.
 There is no authenticated delivery backend, so the assistant cannot confirm live

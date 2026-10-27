@@ -188,6 +188,14 @@ button.gr-button-primary:hover {
 }
 """
 
+EXAMPLES = [
+    "Items are missing from my delivery",
+    "How do I request a refund?",
+    "Where can I check the delivery fee?",
+    "What should I check before checkout?",
+    "Which payment methods can I use?",
+]
+
 HEADER_HTML = """
 <div class="app-header">
     <h1>Delivery Platform Support</h1>
@@ -224,6 +232,8 @@ def main():
             fn=respond,
             title=None,
             description=None,
+            examples=EXAMPLES,
+            cache_examples=False,
             type="messages",
         )
 
