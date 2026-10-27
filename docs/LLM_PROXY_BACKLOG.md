@@ -37,8 +37,8 @@ claim that the service is production-ready.
 - [x] **DONE-09 — Regression tests and CI dependencies.** Mock upstream calls;
   test blocked delivery with usage counted, malformed providers, persistence across
   restarts, concurrent updates and storage failure. Both workflows install proxy dependencies.
-  Latest completed validation (2026-10-27): 365 passed, 1 skipped; Ruff passed.
-  Chatbot scope coverage: 91%.
+  Latest completed validation (2026-10-27): 391 passed, 1 skipped; Ruff passed.
+  Bundled-runtime scope coverage: 100% (chatbot scope previously measured at 91%).
 
 - [x] **PROXY-01 — Chatbot integration.** Opt-in generation traverses the proxy;
   history and output denials, outages and malformed responses fail closed without
@@ -55,7 +55,7 @@ P2 = extended capabilities. These are priorities, not delivery dates.
 | --- | --- | --- | --- | --- | --- |
 | PROXY-02 | P0 | Pending | Tenant identities and credential lifecycle | Resolve identity from credentials; reject revoked/expired credentials; enforce per-tenant model permissions; support rotation without logging secrets. Test cross-tenant isolation and client/admin separation. | DONE-03 |
 | PROXY-03 | P0 | Pending | Shared quotas and concurrency accounting | Atomic per-tenant limits across workers, explicit store-outage behavior and bounded token-budget reservations. Test concurrent workers, quota-window boundaries, cancellation and reservation release. | PROXY-02 |
-| PROXY-04 | P0 | Pending | Dedicated deployment configuration | Reproducible proxy container, ingress TLS/body/time limits, secret injection, persistent volume permissions, health probes and egress restrictions. Smoke-test restart and approved upstream connectivity; verify applications cannot bypass proxy enforcement. | PROXY-01 |
+| PROXY-04 | P0 | Partial | Bundled Gradio deployment and production isolation | Implemented: opt-in loopback startup from app config, readiness, shutdown, dependency packaging, restart/forwarding smoke tests and deployment guide. Pending: live Space/provider qualification, operator ingress TLS/body/time limits, persistent volume permissions, and network isolation that prevents application bypass. Bundled mode shares application privileges. Evidence: [runtime](../src/proxy_runtime.py), [tests](../tests/test_proxy_runtime.py), [guide](LLM_PROXY.md#bundled-gradio-deployment-proxy-04). | PROXY-01 |
 | PROXY-05 | P1 | Pending | Configurable, versioned policies | Validate policy configuration at startup; select tenant policy; expose the applied version in aggregate reporting; support controlled rollback. Test invalid configuration and policy changes. Current policy version is only a fixed label. | PROXY-02 |
 | PROXY-06 | P1 | Pending | Stronger PII/moderation and adversarial evaluation | Add selected detectors with deadlines and defined failure behavior; evaluate direct/indirect injection, obfuscation, cross-message attacks and benign prompts. Document detection and false-positive results without claiming complete prevention. | PROXY-05 |
 | PROXY-07 | P1 | Pending | Circuit breaker | Bound calls during repeated provider failures; configurable recovery probe behavior; no blind retries of billable requests. Test open, half-open and recovered states with concurrent requests. | DONE-06 |

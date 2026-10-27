@@ -220,7 +220,7 @@ def respond(message, history):
     return chat(message, history)
 
 
-def main():
+def _launch_chatbot():
     with gr.Blocks(
         css=CUSTOM_CSS,
         theme=config.APP_THEME,
@@ -249,6 +249,13 @@ def main():
             debug=config.DEBUG,
             inline=False,
         )
+
+
+def main():
+    from src.proxy_runtime import bundled_proxy
+
+    with bundled_proxy():
+        _launch_chatbot()
 
 
 if __name__ == "__main__":

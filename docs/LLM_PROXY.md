@@ -202,3 +202,91 @@ Network restrictions preventing application bypass remain deployment work (PROXY
 `tests/test_chatbot_proxy.py` exercises the chat entry point through the actual gateway
 with a mocked provider, including history rejection, output blocking with usage retained,
 credential separation, invalid responses, outages and explicit local-mode selection.
+
+### Shared application configuration
+
+For bundled application use, gateway settings live alongside chatbot settings in
+`config.py`. `app_from_config()` reads that module, including the shared client key,
+upstream settings, limits and analytics options. Environment variables can still
+optionally override its defaults. `PROXY_MODELS` defaults to the chatbot's
+`PROXY_MODEL` when no separate allowlist is supplied. Credentials and the upstream
+URL default to empty, so an unconfigured gateway cannot start. Keep real credentials
+out of committed source files.
+
+To run a gateway using the application configuration explicitly:
+
+```bash
+uvicorn src.llm_proxy:app_from_config --factory --host 127.0.0.1 --port 8080
+```
+
+The standalone `app_from_env` factory remains available. The chatbot entry point can launch this factory automatically using the bundled
+startup option below.
+
+
+## Bundled Gradio deployment (PROXY-04)
+
+Keep `sdk: gradio`, existing hardware selection and `@spaces.GPU`. No Docker SDK
+migration is required. `requirements.txt` includes gateway dependencies. The gateway
+uses a CPU background thread in the same process; the existing GPU callback remains
+unchanged. Gradio remains the public application interface.
+
+Set these shared defaults in `config.py`, or supply their environment overrides:
+
+```text
+START_INTERNAL_LLM_PROXY=true
+USE_LLM_PROXY=true
+ENABLE_GENERATIVE_FALLBACK=true
+PROXY_BASE_URL=http://127.0.0.1:8080
+PROXY_MODEL=your-approved-model
+PROXY_MODELS=your-approved-model
+PROXY_UPSTREAM_URL=https://your-provider.example/v1/chat/completions
+```
+
+Provide distinct client/admin keys and an upstream key through the configuration's
+credential inputs. Never commit real keys. For Spaces, Secrets can supply those
+inputs without source changes. Credentials remain empty by default and generation
+and internal startup remain disabled until configured.
+
+`python app.py` builds and validates the gateway from `config.py`, reserves the
+loopback port, starts one Uvicorn worker and waits for ASGI lifespan startup before
+launching Gradio. The base URL must use HTTP and literal `127.0.0.1`, with no path,
+query, fragment or credentials. Startup timeout defaults to 15 seconds, configured
+by `PROXY_STARTUP_TIMEOUT_SECONDS`. Missing credentials, an unapproved chatbot model,
+an occupied port or a failed gateway startup prevent Gradio launch. Readiness means
+local initialization succeeded; it does not make a paid provider call.
+
+On normal exit, a launch exception, Ctrl+C or SIGTERM during serving, the gateway
+receives a shutdown request. In-flight requests have a five-second graceful shutdown
+window; the application waits up to ten seconds for the server thread. Access logging
+is disabled on the internal gateway. A later gateway failure produces the chatbot's
+existing safe failure responses; requests never switch to another generation path.
+No automatic restart or billable-request retry is performed.
+
+For local health checks, use `/health/live` and `/health/ready` on port 8080.
+Analytics remain admin-authenticated and are not exposed in the Gradio UI. To retain
+daily aggregates, set `PROXY_ANALYTICS_DB` to a file in an existing writable persistent
+directory. Provision that directory for the application user with restrictive
+permissions (for example, 0700), and protect database/WAL files and backups. Without
+persistent storage, Space rebuilds or replacement can lose the database. Leave the
+setting empty for process counters only.
+
+### Verification and limits
+
+`tests/test_proxy_runtime.py` smoke-tests real loopback startup, health, screened
+forwarding to a mocked HTTPS provider, restart with SQLite retention, port collisions,
+invalid configuration, startup timeouts, shutdown and cleanup. No paid upstream calls
+or live Space deployment are part of these tests. Verify provider connectivity and
+Space restart after deployment with a non-sensitive prompt and admin usage counters.
+
+This bundled mode shares credentials, filesystem and network privileges with the
+chatbot. Loopback binding prevents direct remote access to the proxy; it is not an
+isolation boundary against application code. Platform ingress TLS, external body/time
+limits, persistent volume permissions and enforced upstream egress restrictions are
+operator-managed. Strong prevention of application bypass requires a separately
+isolated gateway and network policy. Consequently, the production-isolation portion
+of PROXY-04 remains pending. The included Dockerfile is an optional local/container
+entry point; the Hugging Face Space continues using Gradio.
+
+Rollback: disable `START_INTERNAL_LLM_PROXY` and `ENABLE_GENERATIVE_FALLBACK`, then
+restart. Deterministic support routes remain available. To use an external gateway,
+disable only internal startup and configure `PROXY_BASE_URL` for that service.

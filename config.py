@@ -67,3 +67,23 @@ PROXY_BASE_URL = os.getenv("PROXY_BASE_URL", "http://127.0.0.1:8080")
 PROXY_CLIENT_KEY = os.getenv("PROXY_CLIENT_KEY", "")
 PROXY_MODEL = os.getenv("PROXY_MODEL", "")
 PROXY_TIMEOUT = float(os.getenv("PROXY_TIMEOUT", "60"))
+
+# Gateway settings shared with the application. Empty credentials keep startup
+# fail-closed until configured; never commit real credentials to this file.
+PROXY_ADMIN_KEY = os.getenv("PROXY_ADMIN_KEY", "")
+PROXY_UPSTREAM_KEY = os.getenv("PROXY_UPSTREAM_KEY", "")
+PROXY_UPSTREAM_URL = os.getenv("PROXY_UPSTREAM_URL", "")
+PROXY_MODELS = tuple(
+    model.strip() for model in os.getenv("PROXY_MODELS", PROXY_MODEL).split(",")
+    if model.strip()
+)
+PROXY_REQUESTS_PER_MINUTE = int(os.getenv("PROXY_REQUESTS_PER_MINUTE", "60"))
+PROXY_TIMEOUT_SECONDS = float(os.getenv("PROXY_TIMEOUT_SECONDS", "30"))
+PROXY_MAX_CONCURRENT_REQUESTS = int(os.getenv("PROXY_MAX_CONCURRENT_REQUESTS", "16"))
+PROXY_UPLOAD_TIMEOUT_SECONDS = float(os.getenv("PROXY_UPLOAD_TIMEOUT_SECONDS", "10"))
+PROXY_ANALYTICS_DB = os.getenv("PROXY_ANALYTICS_DB") or None
+PROXY_ANALYTICS_RETENTION_DAYS = int(os.getenv("PROXY_ANALYTICS_RETENTION_DAYS", "90"))
+
+# Optional gateway in the same Gradio application (no Docker migration needed).
+START_INTERNAL_LLM_PROXY = os.getenv("START_INTERNAL_LLM_PROXY", "false").lower() == "true"
+PROXY_STARTUP_TIMEOUT_SECONDS = float(os.getenv("PROXY_STARTUP_TIMEOUT_SECONDS", "15"))

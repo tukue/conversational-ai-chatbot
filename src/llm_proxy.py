@@ -279,3 +279,22 @@ def app_from_env():
         upload_timeout_seconds=float(os.getenv("PROXY_UPLOAD_TIMEOUT_SECONDS", "10")),
         models=tuple(m.strip() for m in os.environ["PROXY_MODELS"].split(",") if m.strip()),
     ))
+
+
+def app_from_config():
+    """Build the bundled gateway using the application's shared configuration."""
+    import config
+
+    return create_app(Settings(
+        client_key=config.PROXY_CLIENT_KEY,
+        admin_key=config.PROXY_ADMIN_KEY,
+        upstream_key=config.PROXY_UPSTREAM_KEY,
+        upstream_url=config.PROXY_UPSTREAM_URL,
+        models=config.PROXY_MODELS,
+        requests_per_minute=config.PROXY_REQUESTS_PER_MINUTE,
+        timeout_seconds=config.PROXY_TIMEOUT_SECONDS,
+        max_concurrent_requests=config.PROXY_MAX_CONCURRENT_REQUESTS,
+        upload_timeout_seconds=config.PROXY_UPLOAD_TIMEOUT_SECONDS,
+        analytics_db=config.PROXY_ANALYTICS_DB,
+        analytics_retention_days=config.PROXY_ANALYTICS_RETENTION_DAYS,
+    ))

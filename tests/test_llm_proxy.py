@@ -259,3 +259,31 @@ def test_parallel_rate_limit_and_window_reset(monkeypatch):
                     assert sum(r.status_code == 200 for r in results) == 3
                     assert sum(r.status_code == 429 for r in results) == 9
     asyncio.run(scenario())
+
+
+def test_app_factory_reads_shared_application_config(monkeypatch):
+    import config
+    from src import llm_proxy
+
+    values = {
+        "client_key": "client", "admin_key": "admin", "upstream_key": "provider",
+        "upstream_url": "https://provider.test/chat", "models": ("test-model",),
+        "requests_per_minute": 7, "timeout_seconds": 12,
+        "max_concurrent_requests": 3, "upload_timeout_seconds": 4,
+        "analytics_db": None, "analytics_retention_days": 14,
+    }
+    for key, value in values.items():
+        monkeypatch.setattr(config, "PROXY_" + key.upper(), value)
+    captured = []
+    monkeypatch.setattr(llm_proxy, "create_app", lambda settings: captured.append(settings) or settings)
+    assert llm_proxy.app_from_config() == Settings(**values)
+    assert captured == [Settings(**values)]
+
+
+def test_app_factory_rejects_unconfigured_credentials(monkeypatch):
+    import config
+    from src.llm_proxy import app_from_config
+
+    monkeypatch.setattr(config, "PROXY_CLIENT_KEY", "")
+    with pytest.raises(ValueError, match="credentials"):
+        app_from_config()
