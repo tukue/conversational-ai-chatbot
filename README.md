@@ -18,7 +18,7 @@ tags:
   - portfolio
   - rag
   - guardrails
-short_description: Delivery support chatbot with guardrails and input/output monitoring.
+short_description: Delivery support with guardrails and monitoring.
 ---
 
 # Delivery Platform Support Chatbot
