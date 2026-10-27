@@ -12,18 +12,28 @@ from src import llm_proxy, proxy_runtime
 
 @pytest.fixture
 def runtime(monkeypatch, tmp_path):
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
+    state = SimpleNamespace(port=None, calls=[], apps=[])
     values = {
         "START_INTERNAL_LLM_PROXY": True, "USE_LLM_PROXY": True,
-        "PROXY_BASE_URL": f"http://127.0.0.1:{port}", "PROXY_MODEL": "test-model",
+        "PROXY_BASE_URL": "http://127.0.0.1:8080", "PROXY_MODEL": "test-model",
         "PROXY_MODELS": ("test-model",), "PROXY_STARTUP_TIMEOUT_SECONDS": 2,
     }
     for name, value in values.items():
         monkeypatch.setattr(config, name, value)
-    calls = []
-    apps = []
+    calls = state.calls
+    apps = state.apps
+    bind_listener = proxy_runtime._bind_listener
+
+    def allocate_listener(port):
+        # Let the OS allocate the actual server socket; never release a probe
+        # socket between choosing a port and starting the gateway.
+        listener = bind_listener(0)
+        state.port = listener.getsockname()[1]
+        monkeypatch.setattr(config, "PROXY_BASE_URL", f"http://127.0.0.1:{state.port}")
+        return listener
+
+    monkeypatch.setattr(proxy_runtime, "_bind_listener", allocate_listener)
+    state.bind_listener = bind_listener
 
     def upstream(request):
         calls.append(request)
@@ -39,12 +49,15 @@ def runtime(monkeypatch, tmp_path):
         apps.append(app)
         return app
     monkeypatch.setattr(llm_proxy, "app_from_config", factory)
-    return SimpleNamespace(port=port, calls=calls, apps=apps)
+    return state
 
 
-def test_restart_readiness_generation_persistence_and_cleanup(runtime):
+def test_restart_readiness_generation_persistence_and_cleanup(runtime, monkeypatch):
     previous = signal.getsignal(signal.SIGTERM)
     for count in (1, 2):
+        if count == 2:
+            # Exercise the real bind on rapid restart of the previous port.
+            monkeypatch.setattr(proxy_runtime, "_bind_listener", runtime.bind_listener)
         with proxy_runtime.bundled_proxy():
             with httpx.Client(base_url=config.PROXY_BASE_URL, trust_env=False) as client:
                 assert client.get("/health/ready").status_code == 200
@@ -88,9 +101,14 @@ def test_invalid_configuration_fails_before_ui(runtime, monkeypatch, name, value
             pytest.fail("UI must not start")
 
 
-def test_port_collision_fails_before_ui(runtime):
+def test_port_collision_fails_before_ui(runtime, monkeypatch):
+    monkeypatch.setattr(proxy_runtime, "_bind_listener", runtime.bind_listener)
     with socket.socket() as occupied:
-        occupied.bind(("127.0.0.1", runtime.port))
+        occupied.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        occupied.bind(("127.0.0.1", 0))
+        occupied.listen()
+        port = occupied.getsockname()[1]
+        monkeypatch.setattr(config, "PROXY_BASE_URL", f"http://127.0.0.1:{port}")
         with pytest.raises(OSError):
             with proxy_runtime.bundled_proxy():
                 pytest.fail("must not contact existing listener")
@@ -173,3 +191,20 @@ def test_app_launch_runs_inside_gateway_lifecycle(monkeypatch):
     monkeypatch.setattr(app, "_launch_chatbot", lambda: events.append("launch"))
     app.main()
     assert events == ["ready", "launch", "stopped"]
+
+
+def test_invalid_model_never_constructs_gateway(runtime, monkeypatch):
+    monkeypatch.setattr(config, "PROXY_MODEL", "unapproved")
+    monkeypatch.setattr(llm_proxy, "app_from_config", lambda: pytest.fail("must validate model first"))
+    with pytest.raises(ValueError, match="allowlist"):
+        with proxy_runtime.bundled_proxy():
+            pytest.fail("must not launch")
+
+
+def test_listener_supports_reuse_and_reserves_port():
+    with proxy_runtime._bind_listener(0) as listener:
+        assert listener.getsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR) == 1
+        listener.listen()
+        port = listener.getsockname()[1]
+        with pytest.raises(OSError):
+            proxy_runtime._bind_listener(port)

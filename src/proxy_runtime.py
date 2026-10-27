@@ -19,6 +19,17 @@ def _port(base_url):
     return port
 
 
+def _bind_listener(port):
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", port))
+    except BaseException:
+        listener.close()
+        raise
+    return listener
+
+
 @contextmanager
 def bundled_proxy():
     """Start only when requested, and always stop when the application exits."""
@@ -38,13 +49,12 @@ def bundled_proxy():
     import uvicorn
     from src.llm_proxy import app_from_config
 
-    app = app_from_config()
     if config.PROXY_MODEL not in config.PROXY_MODELS:
         raise ValueError("Chatbot model must be in the proxy allowlist")
+    app = app_from_config()
     # Bind before starting the thread: a port collision must never let another
     # service satisfy readiness or receive this application's credentials.
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
-        listener.bind(("127.0.0.1", port))
+    with _bind_listener(port) as listener:
         server = uvicorn.Server(uvicorn.Config(
             app, host="127.0.0.1", port=port, lifespan="on", workers=1,
             access_log=False, log_config=None, log_level="critical",
