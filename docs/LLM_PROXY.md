@@ -202,3 +202,22 @@ Network restrictions preventing application bypass remain deployment work (PROXY
 `tests/test_chatbot_proxy.py` exercises the chat entry point through the actual gateway
 with a mocked provider, including history rejection, output blocking with usage retained,
 credential separation, invalid responses, outages and explicit local-mode selection.
+
+### Shared application configuration
+
+For bundled application use, gateway settings live alongside chatbot settings in
+`config.py`. `app_from_config()` reads that module, including the shared client key,
+upstream settings, limits and analytics options. Environment variables can still
+optionally override its defaults. `PROXY_MODELS` defaults to the chatbot's
+`PROXY_MODEL` when no separate allowlist is supplied. Credentials and the upstream
+URL default to empty, so an unconfigured gateway cannot start. Keep real credentials
+out of committed source files.
+
+To run a gateway using the application configuration explicitly:
+
+```bash
+uvicorn src.llm_proxy:app_from_config --factory --host 127.0.0.1 --port 8080
+```
+
+The standalone `app_from_env` factory remains available. The chatbot entry point
+does not yet launch the gateway automatically; bundled startup is still pending.
