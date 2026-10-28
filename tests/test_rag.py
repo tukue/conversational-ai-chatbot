@@ -13,6 +13,7 @@ from src.rag import (
     _cosine_similarity,
     _keyword_score,
     _reciprocal_fusion_rank,
+    _chunk_identity,
     _tokenize,
 )
 
@@ -65,6 +66,52 @@ class TestKeywordScore:
 
     def test_empty_doc(self):
         assert _keyword_score(["hello"], []) == 0.0
+
+
+class TestRAGHardening:
+    def test_keyword_search_includes_faq_keywords_and_product_metadata(self):
+        store = VectorStore()
+        store.add_chunks([
+            {
+                "id": "faq-1",
+                "content": "A helpful answer about audio.",
+                "keywords": ["soundstage"],
+                "type": "faq",
+            }
+        ])
+
+        results = store._keyword_search("soundstage", top_k=1)
+
+        assert results[0]["id"] == "faq-1"
+
+    def test_chunk_identity_distinguishes_chunks_from_same_source(self):
+        first = {"id": "faq-1", "position": 0, "content": "first chunk"}
+        second = {"id": "faq-1", "position": 100, "content": "second chunk"}
+
+        assert _chunk_identity(first) != _chunk_identity(second)
+
+    def test_formatted_context_respects_configured_limit(self, monkeypatch):
+        monkeypatch.setattr(rag_module, "MAX_CONTEXT_CHARS", 80)
+        rag = RAGEngine()
+
+        context = rag.format_context([
+            {"content": "x" * 200, "score": 0.9, "method": "keyword"},
+            {"content": "another source", "score": 0.8, "method": "keyword"},
+        ])
+
+        assert len(context) <= 80
+        assert "Source 1" in context
+
+    def test_formatted_context_handles_non_numeric_scores(self):
+        rag = RAGEngine()
+
+        context = rag.format_context([
+            {"content": "A useful answer.", "score": "not-a-number"},
+            {"content": "Another useful answer.", "score": None},
+        ])
+
+        assert "relevance: 0.00" in context
+        assert context.count("relevance: 0.00") == 2
 
     def test_tokenize_removes_common_words(self):
         assert _tokenize("Do you sell wireless headphones?") == [

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import logging
+import hashlib
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ def _get_float_env(name, default):
 TOP_K_RESULTS = _get_positive_int_env("RAG_TOP_K", 5)
 SIMILARITY_THRESHOLD = _get_float_env("RAG_SIMILARITY_THRESHOLD", 0.3)
 RRF_K = _get_positive_int_env("RAG_RRF_K", 60)
+MAX_CONTEXT_CHARS = _get_positive_int_env("RAG_MAX_CONTEXT_CHARS", 8000)
 
 
 def _load_json(filename):
@@ -90,6 +92,15 @@ def _keyword_score(query_tokens, doc_tokens):
     intersection = query_set & doc_set
     denominator = max(len(query_set), len(doc_set))
     return len(intersection) / denominator if denominator else 0.0
+
+
+def _chunk_identity(chunk):
+    """Return a stable identity for an individual chunk, not just its source."""
+    source_id = str(chunk.get("id", ""))
+    position = str(chunk.get("position", ""))
+    content = str(chunk.get("content", ""))
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    return f"{source_id}:{position}:{digest}"
 
 
 def _reciprocal_fusion_rank(scores, k=60):
@@ -233,7 +244,15 @@ class VectorStore:
             return []
         scored = []
         for i, chunk in enumerate(self._chunks):
-            doc_tokens = _tokenize(chunk["content"])
+            metadata = chunk.get("keywords", [])
+            if isinstance(metadata, (list, tuple, set)):
+                metadata = " ".join(str(value) for value in metadata)
+            elif not isinstance(metadata, str):
+                metadata = ""
+            metadata = " ".join(
+                [metadata, str(chunk.get("name", "")), str(chunk.get("category", ""))]
+            )
+            doc_tokens = _tokenize(f"{chunk['content']} {metadata}")
             score = _keyword_score(query_tokens, doc_tokens)
             # Boost score by position weight (earlier chunks are more relevant)
             position_weight = self._chunks[i].get("weight", 1.0)
@@ -406,8 +425,9 @@ class RAGEngine:
         results = self._store.search(query, top_k=top_k)
 
         if not results:
-            return self._fallback_keyword_search(query)
+            results = self._fallback_keyword_search(query)
 
+        logger.info("RAG retrieval completed: results=%d", len(results))
         return results
 
     def _fallback_keyword_search(self, query):
@@ -434,13 +454,24 @@ class RAGEngine:
         if not chunks:
             return ""
         context_parts = []
+        remaining = MAX_CONTEXT_CHARS
         for i, chunk in enumerate(chunks, 1):
-            score = chunk.get("score", 0)
+            try:
+                score = float(chunk.get("score", 0) or 0)
+            except (TypeError, ValueError, OverflowError):
+                score = 0.0
             method = chunk.get("method", "unknown")
             content = chunk.get("content", "")
-            context_parts.append(
-                f"[Source {i} | relevance: {score:.2f} | method: {method}]\n{content}"
-            )
+            prefix = f"[Source {i} | relevance: {score:.2f} | method: {method}]\n"
+            separator = "\n\n---\n\n" if context_parts else ""
+            available = remaining - len(prefix) - len(separator)
+            if available <= 0:
+                break
+            rendered = prefix + content[:available]
+            context_parts.append(rendered)
+            remaining -= len(separator) + len(rendered)
+            if len(content) > available:
+                break
         return "\n\n---\n\n".join(context_parts)
 
     def search_with_rerank(self, query, top_k=TOP_K_RESULTS):
@@ -457,10 +488,10 @@ class RAGEngine:
         keyword_results = self._store._keyword_search(query, top_k=top_k * 2)
 
         semantic_ranked = [
-            (r["id"], r.get("score", 0)) for r in semantic_results
+            (_chunk_identity(r), r.get("score", 0)) for r in semantic_results
         ]
         keyword_ranked = [
-            (r["id"], r.get("score", 0)) for r in keyword_results
+            (_chunk_identity(r), r.get("score", 0)) for r in keyword_results
         ]
 
         fused = _reciprocal_fusion_rank(
@@ -469,15 +500,14 @@ class RAGEngine:
 
         chunk_map = {}
         for r in semantic_results:
-            chunk_map[r["id"]] = r
+            chunk_map[_chunk_identity(r)] = r
         for r in keyword_results:
-            if r["id"] not in chunk_map:
-                chunk_map[r["id"]] = r
+            chunk_map.setdefault(_chunk_identity(r), r)
 
         results = []
-        for doc_id, rrf_score in fused[:top_k]:
-            if doc_id in chunk_map:
-                chunk = dict(chunk_map[doc_id])
+        for chunk_id, rrf_score in fused[:top_k]:
+            if chunk_id in chunk_map:
+                chunk = dict(chunk_map[chunk_id])
                 chunk["rrf_score"] = round(rrf_score, 6)
                 results.append(chunk)
         return results

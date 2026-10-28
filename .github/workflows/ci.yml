@@ -37,3 +37,6 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short
+
+      - name: Build Docker image
+        run: docker build --tag customer-support-bot:test .
