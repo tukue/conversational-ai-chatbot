@@ -8,6 +8,10 @@ huggingface_hub>=0.23.0
 sentence-transformers>=2.2.0
 numpy>=1.24.0
 
-# Internal gateway shares FastAPI/Starlette with Gradio.
--r requirements-proxy.txt
+# Internal gateway dependencies must be declared here directly because the
+# Hugging Face Spaces build installs this file from a temporary mount and does
+# not mount requirements-proxy.txt alongside it.
+httpx>=0.27,<1
+anyio>=3.7,<5
+uvicorn>=0.30,<1
 spaces
