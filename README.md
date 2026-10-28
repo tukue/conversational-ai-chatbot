@@ -93,9 +93,9 @@ Pure LLM chatbots are unpredictable for customer support. This design uses **det
 - **Cost-effective**: Runs on CPU; DialoGPT only loads when triggered
 
 ### Retrieval Strategy
-- **TF-IDF + stemming** over local JSON: zero external dependencies, works offline, interpretable
-- **No embeddings/semantic search** by default: avoids vector DB complexity for demo scope
-- **Extensible**: Swap `knowledge_base.py` for embeddings + FAISS/Chroma in production
+- **Hybrid retrieval** over local FAQ and product JSON: semantic embeddings when available, metadata-aware keyword fallback, and optional Reciprocal Rank Fusion.
+- **Grounding controls**: bounded context formatting, source labels, and response validation against retrieved chunks.
+- **Operational resilience**: embeddings load lazily and retrieval falls back to keyword search when model loading or inference fails.
 
 ### Safety by Design
 - **Input guardrails**: PII regex (SSN, cards, phones), profanity, off-topic detection, prompt injection patterns
@@ -310,7 +310,7 @@ Gradio chat response
 | **Linting** | ruff | Fast Python linting |
 | **CI/CD** | GitHub Actions | Test, lint, auto-deploy to HF Spaces |
 | **Deploy** | Hugging Face Spaces (CPU Upgrade) | Free hosting, OIDC auth, auto-build |
-| **Container** | Docker (multi-stage) | Reproducible builds, local/prod parity |
+| **Container** | Docker (CPU-only PyTorch, non-root runtime) | Reproducible builds, reduced privilege, local/prod parity |
 
 ## Quick Start
 
@@ -329,8 +329,10 @@ Open the local Gradio URL printed in the terminal (default: `http://localhost:78
 
 ```bash
 docker build -t customer-support-bot .
-docker run -p 7860:7860 customer-support-bot
+docker run --rm -p 7860:7860 customer-support-bot
 ```
+
+The image runs as an unprivileged user, stores Hugging Face model cache under `/home/app/.cache/huggingface`, and excludes tests, Git metadata, and local environment files from the build context. CI builds the image on every test run.
 
 ### With Generative Fallback Enabled
 
@@ -352,7 +354,7 @@ ruff check . --select E,F,W --ignore E501
 
 ### Workflows
 
-- **CI** (`.github/workflows/ci.yml`): lint + tests on every push/PR.
+- **CI** (`.github/workflows/ci.yml`): lint + tests + Docker image build on every push/PR.
 - **Deploy** (`.github/workflows/deploy.yml`): lint, test, and deploy to Hugging Face via a Trusted Publisher.
 
 ### Deploy to Hugging Face (Trusted Publisher — no token)
@@ -375,6 +377,7 @@ The target Space is [`Tukue/customer-support-ai`](https://huggingface.co/spaces/
 #### Deploy
 
 Push to `main` → workflow runs tests → deploys to your Space automatically.
+Manual workflow dispatch is also restricted to `main`, matching the Trusted Publisher branch configuration.
 
 ```bash
 git push origin main
@@ -401,6 +404,7 @@ Set these in your Space Settings → Variables and secrets if needed:
 | `GRADIO_DEBUG` | `false` | Enable Gradio debug mode |
 | `CHATBOT_DEVICE` | auto/CPU | Override model device when AI fallback is enabled |
 | `ENABLE_GENERATIVE_FALLBACK` | `false` | Enable optional DialoGPT fallback |
+| `RAG_MAX_CONTEXT_CHARS` | `8000` | Bound retrieved context sent to response builders |
 
 ## Deploy to Hugging Face Spaces
 
