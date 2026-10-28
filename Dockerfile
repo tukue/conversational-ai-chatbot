@@ -15,11 +15,13 @@ RUN python -m pip install --no-cache-dir \
         "torch==2.3.1+cpu" \
     && python -m pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=10001:10001 . .
-
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin app \
     && mkdir -p /home/app/.cache/huggingface \
     && chown -R 10001:10001 /home/app
+
+RUN python -m pip install --no-cache-dir -r requirements-proxy.txt
+
+COPY --chown=10001:10001 . .
 
 USER 10001:10001
 

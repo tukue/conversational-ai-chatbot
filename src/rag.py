@@ -456,7 +456,10 @@ class RAGEngine:
         context_parts = []
         remaining = MAX_CONTEXT_CHARS
         for i, chunk in enumerate(chunks, 1):
-            score = chunk.get("score", 0)
+            try:
+                score = float(chunk.get("score", 0) or 0)
+            except (TypeError, ValueError, OverflowError):
+                score = 0.0
             method = chunk.get("method", "unknown")
             content = chunk.get("content", "")
             prefix = f"[Source {i} | relevance: {score:.2f} | method: {method}]\n"

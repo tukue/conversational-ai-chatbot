@@ -102,6 +102,17 @@ class TestRAGHardening:
         assert len(context) <= 80
         assert "Source 1" in context
 
+    def test_formatted_context_handles_non_numeric_scores(self):
+        rag = RAGEngine()
+
+        context = rag.format_context([
+            {"content": "A useful answer.", "score": "not-a-number"},
+            {"content": "Another useful answer.", "score": None},
+        ])
+
+        assert "relevance: 0.00" in context
+        assert context.count("relevance: 0.00") == 2
+
     def test_tokenize_removes_common_words(self):
         assert _tokenize("Do you sell wireless headphones?") == [
             "sell",
